@@ -272,8 +272,42 @@
   Card.prototype.downloadImage = function () {
     if (!this.plotDivs[0]) return;
     var s = this.state(), name = (this.el.id + '-' + (s.ind || s.alt || s.view)).replace(/[^a-z0-9\-]/gi, '_');
-    try { Plotly.downloadImage(this.plotDivs[0], { format: 'png', filename: name, width: 1200, height: 700, scale: 2 }); toast('Image download started'); }
-    catch (e) { toast('Downloads are blocked here.'); }
+    // Plotly's own PNG export breaks on quoted font names (they end up inside an SVG style attribute),
+    // so export SVG, repair the quotes, and rasterise it ourselves.
+    var div = this.plotDivs[0], W = Math.max(900, Math.round(div.clientWidth)), H = Math.max(500, Math.round(div.clientHeight)), tk = T(), bg = tk.surface;
+    var title = $('.g-title', this.el).textContent, sub = $('.g-sub', this.el).textContent, src = $('.src', this.el).textContent.replace(/\s*–\s*Learn more about this data\s*$/, '');
+    var FONT = '"Source Sans 3","Segoe UI",Arial,sans-serif';
+    var wrap = function (ctx, text, maxW) { var words = text.split(' '), lines = [], cur = ''; words.forEach(function (w) { var t = cur ? cur + ' ' + w : w; if (ctx.measureText(t).width > maxW && cur) { lines.push(cur); cur = w; } else cur = t; }); if (cur) lines.push(cur); return lines; };
+    Plotly.toImage(div, { format: 'svg', width: W, height: H }).then(function (url) {
+      var svg = decodeURIComponent(url.replace(/^data:image\/svg\+xml,/, ''));
+      svg = svg.replace(/font-family: ([^;]*);/g, function (m, f) { return 'font-family: ' + f.replace(/"/g, "'") + ';'; });
+      return new Promise(function (resolve, reject) {
+        var img = new Image();
+        img.onload = function () {
+          var P = 24, m = document.createElement('canvas').getContext('2d');
+          m.font = '600 22px ' + FONT; var tl = wrap(m, title, W - 2 * P);
+          m.font = '15px ' + FONT; var sl = sub ? wrap(m, sub, W - 2 * P) : [];
+          m.font = '12px ' + FONT; var fl = wrap(m, src ? 'Source: ' + src : '', W - 2 * P);
+          var top = P + tl.length * 28 + sl.length * 20 + 12, bot = 16 + fl.length * 16 + 22;
+          var c = document.createElement('canvas'); c.width = W * 2; c.height = (top + H + bot) * 2;
+          var x = c.getContext('2d'); x.scale(2, 2); x.fillStyle = bg; x.fillRect(0, 0, W, top + H + bot);
+          var y = P + 20; x.textBaseline = 'alphabetic';
+          x.fillStyle = tk.ink; x.font = '600 22px ' + FONT; tl.forEach(function (l) { x.fillText(l, P, y); y += 28; });
+          x.fillStyle = tk.muted; x.font = '15px ' + FONT; sl.forEach(function (l) { x.fillText(l, P, y - 4); y += 20; });
+          x.drawImage(img, 0, top, W, H);
+          y = top + H + 20; x.fillStyle = tk.ink2; x.font = '12px ' + FONT; fl.forEach(function (l) { if (l) x.fillText(l, P, y); y += 16; });
+          x.fillStyle = tk.accent; x.font = '600 12px ' + FONT; x.fillText('GRAMA · Redrawing the Map (2026)', P, y + 4);
+          c.toBlob(function (b) { b ? resolve(b) : reject(new Error('empty image')); }, 'image/png');
+        };
+        img.onerror = function () { reject(new Error('image render failed')); };
+        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      });
+    }).then(function (blob) {
+      var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name + '.png';
+      document.body.appendChild(a); a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+      toast('Image downloaded: ' + name + '.png');
+    }).catch(function () { toast('Could not create the image. Downloads may be blocked in this viewer.'); });
   };
   Card.prototype.fullscreen = function () {
     var el = this.el, self = this, lab = $('[data-act="full"] span', el);

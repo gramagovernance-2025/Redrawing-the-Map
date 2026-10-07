@@ -1,0 +1,6 @@
+# Report PDF kept out of the repo
+*.pdf
+# Analysis scripts stay in Dropbox only (not published)
+build-scripts/
+__pycache__/
+desktop.ini

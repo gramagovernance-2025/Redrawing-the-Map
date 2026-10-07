@@ -1,0 +1,762 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Redrawing the Map</title>
+<meta name="description" content="GRAMA policy report on Gram Panchayat delimitation in Bihar: interactive edition with charts, maps and data.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=Source+Sans+3:wght@400;600;700&display=swap">
+<style>
+/* Layout: long-form article. Sticky section rail on wide screens, 700px reading column, 980px figure cards ("graphers") that break out of the column. */
+:root{
+  --bg:#fbf8f8; --surface:#ffffff; --sunk:#f4eeef;
+  --ink:#231b1d; --ink-2:#4d4245; --muted:#7a6d71; --rule:#e8dfe1;
+  --accent:#8c1d2f; --accent-ink:#7a1828; --accent-soft:rgba(140,29,47,.14); --accent-wash:#f7ecee;
+  --cool:#3b5f86; --ochre:#a8741d; --neutral-mark:#8b8185;
+  --hero-bg:#7c1729; --hero-ink:#fff6f7; --hero-muted:#f1cfd5;
+  --f-display:"Literata", Georgia, "Times New Roman", serif;
+  --f-body:"Source Sans 3", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --step--1:.875rem; --step-0:1.0625rem; --step-1:1.25rem; --step-2:1.6rem; --step-3:2.15rem; --step-4:clamp(2.6rem,6vw,4.2rem);
+  --radius:6px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#151112; --surface:#1d1719; --sunk:#241d1f;
+  --ink:#f1eaeb; --ink-2:#d2c6c9; --muted:#a3969a; --rule:#3a3033;
+  --accent:#e2788c; --accent-ink:#ef9aaa; --accent-soft:rgba(226,120,140,.20); --accent-wash:#2b1d21;
+  --cool:#8db3dc; --ochre:#d9a75a; --neutral-mark:#a59a9e;
+  --hero-bg:#4a0f1a; --hero-ink:#fff3f5; --hero-muted:#e6b6bf; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#151112; --surface:#1d1719; --sunk:#241d1f;
+  --ink:#f1eaeb; --ink-2:#d2c6c9; --muted:#a3969a; --rule:#3a3033;
+  --accent:#e2788c; --accent-ink:#ef9aaa; --accent-soft:rgba(226,120,140,.20); --accent-wash:#2b1d21;
+  --cool:#8db3dc; --ochre:#d9a75a; --neutral-mark:#a59a9e;
+  --hero-bg:#4a0f1a; --hero-ink:#fff3f5; --hero-muted:#e6b6bf; color-scheme:dark}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:var(--step-0);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:var(--accent-ink);text-underline-offset:2px}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+h1,h2,h3,h4{font-family:var(--f-display);text-wrap:balance;line-height:1.2;margin:0}
+.num{font-variant-numeric:tabular-nums}
+
+/* top bar */
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--rule)}
+.topbar-in{max-width:1240px;margin:0 auto;padding:.55rem 16px;display:flex;align-items:center;gap:1rem}
+.brand{display:flex;align-items:center;gap:.5rem;font-weight:700;letter-spacing:.08em;font-size:.85rem;color:var(--accent-ink);text-decoration:none}
+.brand-mark{width:26px;height:26px;border-radius:50%;background:var(--accent);display:grid;place-items:center}
+.brand-mark svg{width:14px;height:14px}
+.topbar-title{font-family:var(--f-display);font-size:.95rem;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.topbar-sp{flex:1}
+.progress{position:absolute;left:0;bottom:-1px;height:2px;background:var(--accent);width:0}
+
+/* hero */
+.hero{background:var(--hero-bg);color:var(--hero-ink);overflow:hidden}
+.hero-in{max-width:1240px;margin:0 auto;padding-block:3.2rem 3rem;padding-inline:16px;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:2.5rem;align-items:center}
+.eyebrow{font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;font-weight:700}
+.hero .eyebrow{color:var(--hero-muted)}
+.hero h1{font-size:var(--step-4);font-weight:700;margin:.6rem 0 .8rem;letter-spacing:-.01em}
+.hero .dek{font-family:var(--f-display);font-size:var(--step-1);line-height:1.45;color:var(--hero-ink);max-width:36ch;margin:0}
+.hero-meta{margin-top:1.6rem;display:flex;flex-wrap:wrap;gap:.4rem 1.4rem;font-size:.92rem;color:var(--hero-muted)}
+.hero-meta b{color:var(--hero-ink);font-weight:600}
+.hero-actions{margin-top:1.6rem;display:flex;flex-wrap:wrap;gap:.6rem}
+.btn{display:inline-flex;align-items:center;gap:.4rem;padding:.55rem 1rem;border-radius:999px;border:1px solid currentColor;text-decoration:none;font-weight:600;font-size:.92rem;cursor:pointer;background:transparent}
+.hero .btn{color:var(--hero-ink)}
+.hero .btn.solid{background:var(--hero-ink);color:var(--hero-bg);border-color:var(--hero-ink)}
+.hero-photo{position:relative;aspect-ratio:4/3.4;max-width:100%;border-radius:0 0 0 46% / 0 0 0 40%;overflow:hidden;box-shadow:0 0 0 6px rgba(255,255,255,.08)}
+.hero-photo img{width:100%;height:100%;object-fit:cover;display:block}
+
+/* glance */
+.glance{background:var(--surface);border-bottom:1px solid var(--rule)}
+.glance-in{max-width:1240px;margin:0 auto;padding:1.4rem 16px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem}
+.stat{padding:.2rem 0 .2rem 1rem;border-left:2px solid var(--rule)}
+.stat b{display:block;font-family:var(--f-display);font-size:var(--step-2);color:var(--accent-ink);font-variant-numeric:tabular-nums;line-height:1.15}
+.stat span{font-size:.9rem;color:var(--ink-2);line-height:1.35;display:block;margin-top:.2rem}
+
+/* page layout */
+.page{max-width:1240px;margin:0 auto;padding-inline:16px;padding-block:2.5rem 4rem;display:grid;grid-template-columns:220px minmax(0,1fr);gap:3rem}
+.rail{position:sticky;top:calc(env(safe-area-inset-top,0px) + 64px);align-self:start;max-height:calc(100vh - 90px);overflow:auto;font-size:.9rem}
+.rail h4{font-family:var(--f-body);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.6rem}
+.rail ol{list-style:none;margin:0;padding:0;display:grid;gap:.1rem}
+.rail a{display:block;padding:.32rem .6rem;border-left:2px solid var(--rule);color:var(--ink-2);text-decoration:none;line-height:1.3}
+.rail a:hover{color:var(--ink)}
+.rail a.on{border-left-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.rail .n{color:var(--muted);font-variant-numeric:tabular-nums;margin-right:.3rem}
+article{min-width:0}
+.prose{max-width:700px}
+.prose p{margin:0 0 1.05em}
+.prose ul{padding-left:1.2em;margin:0 0 1.1em}
+.prose li{margin:.25em 0}
+section{scroll-margin-top:70px;padding-top:1rem;margin-bottom:3.2rem}
+section>h2{font-size:var(--step-3);margin:.2rem 0 1rem;font-weight:600}
+.sec-no{font-family:var(--f-body);font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-ink);font-weight:700}
+h3.sub{font-family:var(--f-body);font-size:.82rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:2rem 0 .7rem;font-weight:700}
+.pull{font-family:var(--f-display);font-size:var(--step-1);line-height:1.45;color:var(--accent-ink);border-left:3px solid var(--accent);padding:.2rem 0 .2rem 1.1rem;margin:1.6rem 0;max-width:640px}
+.context{background:var(--accent-wash);border-radius:var(--radius);padding:1rem 1.2rem;margin:1.4rem 0;max-width:700px}
+.context .eyebrow{color:var(--accent-ink);font-size:.72rem;display:block;margin-bottom:.3rem}
+.context p{margin:0}
+.fn{font-size:var(--step--1);color:var(--muted);max-width:700px;border-top:1px solid var(--rule);padding-top:.6rem;margin-top:1rem}
+.photo-break{margin:2rem 0;max-width:980px}
+.photo-break img{width:100%;aspect-ratio:21/8;object-fit:cover;border-radius:var(--radius);display:block}
+
+/* key findings / recs */
+.recs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;max-width:980px;margin:1.2rem 0}
+.rec{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:1rem 1.2rem}
+.rec h4{font-family:var(--f-body);font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:.5rem}
+.rec ul{margin:0;padding-left:1.1em;font-size:.97rem}
+.rec li{margin:.3em 0}
+
+/* grapher card */
+.grapher{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);margin:1.8rem 0;max-width:980px;padding:1.1rem 1.2rem .9rem;position:relative}
+.grapher.is-full{position:fixed;inset:0;z-index:100;max-width:none;margin:0;border-radius:0;overflow:auto;padding:1.2rem max(16px,3vw)}
+.grapher:fullscreen{max-width:none;margin:0;border-radius:0;overflow:auto;padding:1.2rem max(16px,3vw);background:var(--surface)}
+.g-top{display:flex;gap:1rem;align-items:flex-start;justify-content:space-between}
+.g-title{font-size:var(--step-1);font-weight:600;color:var(--ink)}
+.g-sub{color:var(--muted);font-size:.95rem;margin:.25rem 0 0;line-height:1.4}
+.g-fig{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);white-space:nowrap;font-weight:700;padding-top:.3rem}
+.g-controls{display:flex;flex-wrap:wrap;gap:.6rem 1rem;align-items:center;margin:.9rem 0 .4rem}
+.g-tabs{display:inline-flex;border:1px solid var(--rule);border-radius:6px;padding:2px;background:var(--sunk)}
+.g-tab{display:inline-flex;align-items:center;gap:.35rem;border:0;background:transparent;padding:.32rem .75rem;border-radius:4px;cursor:pointer;color:var(--ink-2);font-size:.9rem}
+.g-tab svg{width:15px;height:15px}
+.g-tab[aria-selected="true"]{background:var(--surface);color:var(--accent-ink);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.g-chips{display:flex;flex-wrap:wrap;gap:.35rem}
+.chip{border:1px solid var(--rule);background:var(--surface);color:var(--ink-2);border-radius:999px;padding:.24rem .7rem;font-size:.86rem;cursor:pointer;line-height:1.3}
+.chip:hover{border-color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--surface);font-weight:600}
+.g-view{min-height:380px;position:relative}
+.g-plot{width:100%;height:440px}
+.g-plot.tall{height:560px}
+.g-multi{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.6rem 1rem}
+.g-multi .mini h5{font-family:var(--f-body);font-size:.85rem;margin:.4rem 0 0;color:var(--ink);font-weight:600}
+.g-multi .mini small{display:block;color:var(--muted);font-size:.75rem}
+.g-multi .mini .g-plot{height:200px}
+.g-table-wrap{overflow:auto;max-height:520px;border:1px solid var(--rule);border-radius:4px}
+table.data{border-collapse:collapse;width:100%;font-size:.9rem;font-variant-numeric:tabular-nums}
+table.data th,table.data td{padding:.45rem .7rem;border-bottom:1px solid var(--rule);text-align:right;white-space:nowrap}
+table.data th:first-child,table.data td:first-child{text-align:left}
+table.data thead th{position:sticky;top:0;background:var(--sunk);font-weight:600;color:var(--ink-2);cursor:pointer;user-select:none}
+table.data thead th[data-sort]::after{content:" ↕";color:var(--muted);font-size:.8em}
+table.data tr.hl td{background:var(--accent-wash);font-weight:600}
+table.data td.wrap{white-space:normal}
+.g-img{width:100%;border-radius:4px;display:block;background:#fff}
+.g-foot{border-top:1px solid var(--rule);margin-top:.7rem;padding-top:.7rem;display:flex;flex-wrap:wrap;gap:.6rem 1.2rem;justify-content:space-between;align-items:flex-start}
+.g-meta{font-size:.86rem;color:var(--ink-2);min-width:0;flex:1 1 380px;line-height:1.45}
+.g-meta p{margin:0 0 .25rem}
+.g-meta .note{color:var(--muted)}
+.linkish{background:none;border:0;padding:0;color:var(--accent-ink);text-decoration:underline;text-underline-offset:2px;cursor:pointer;font-size:inherit}
+.g-actions{display:flex;flex-wrap:wrap;gap:.4rem;position:relative}
+.act{display:inline-flex;align-items:center;gap:.4rem;border:1px solid var(--rule);background:var(--sunk);border-radius:5px;padding:.4rem .75rem;font-size:.86rem;cursor:pointer;color:var(--ink-2)}
+.act:hover{color:var(--ink);border-color:var(--muted)}
+.act svg{width:15px;height:15px}
+.menu{position:absolute;right:0;bottom:calc(100% + 6px);background:var(--surface);border:1px solid var(--rule);border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.14);padding:.3rem;display:grid;min-width:220px;z-index:5}
+.menu button{border:0;background:none;text-align:left;padding:.5rem .7rem;border-radius:4px;cursor:pointer;font-size:.9rem}
+.menu button:hover{background:var(--sunk)}
+.menu small{display:block;color:var(--muted);font-size:.78rem}
+.learn{background:var(--sunk);border-radius:6px;padding:1rem 1.2rem;margin-top:.8rem;font-size:.93rem;line-height:1.5}
+.learn h4{font-family:var(--f-body);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:.9rem 0 .3rem}
+.learn h4:first-child{margin-top:0}
+.learn p{margin:0 0 .4rem}
+.learn dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:.3rem 1rem;margin:0}
+.learn dt{color:var(--muted)}
+.learn dd{margin:0;font-variant-numeric:tabular-nums}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:.5rem 1rem;border-radius:999px;font-size:.9rem;z-index:200;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+
+/* tiles */
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;max-width:980px;margin:1.4rem 0}
+.tile{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:1rem 1.1rem}
+.tile b{font-family:var(--f-display);font-size:var(--step-3);color:var(--accent-ink);display:block;line-height:1.1;font-variant-numeric:tabular-nums}
+.tile span{color:var(--ink-2);font-size:.93rem;line-height:1.4;display:block;margin-top:.35rem}
+
+/* static tables */
+.tbl-wrap{overflow-x:auto;max-width:980px;margin:1.2rem 0;border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface)}
+.cap{font-size:.9rem;color:var(--muted);margin:.4rem 0 1.4rem;max-width:980px}
+
+/* recommendations table 4 */
+.t4{max-width:980px;display:grid;gap:.6rem;margin:1.2rem 0}
+.t4 details{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius)}
+.t4 summary{list-style:none;cursor:pointer;padding:.85rem 1.1rem;display:grid;grid-template-columns:2.2rem minmax(0,1fr) auto;gap:.6rem;align-items:baseline}
+.t4 summary::-webkit-details-marker{display:none}
+.t4 .k{font-family:var(--f-display);color:var(--accent-ink);font-weight:700;font-variant-numeric:tabular-nums}
+.t4 .h{font-weight:600}
+.t4 .s{font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.t4 .b{padding:0 1.1rem 1rem 3.9rem;font-size:.96rem}
+.t4 .b p{margin:.2rem 0 .5rem}
+.t4 .b strong{color:var(--ink)}
+
+ol.steps{counter-reset:s;list-style:none;padding:0;max-width:700px;margin:1rem 0}
+ol.steps li{counter-increment:s;position:relative;padding:0 0 .8rem 2.6rem}
+ol.steps li::before{content:counter(s);position:absolute;left:0;top:.05rem;width:1.8rem;height:1.8rem;border-radius:50%;background:var(--accent-wash);color:var(--accent-ink);display:grid;place-items:center;font-weight:700;font-size:.85rem}
+.refs p{padding-left:1.5em;text-indent:-1.5em;font-size:.95rem;margin:0 0 .6rem}
+.cite{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:1rem 1.2rem;max-width:700px;display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap}
+.cite p{margin:0;flex:1 1 300px;font-size:.95rem}
+footer.site{background:var(--hero-bg);color:var(--hero-ink)}
+footer.site .in{max-width:1240px;margin:0 auto;padding:2.2rem 16px;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:2rem;font-size:.95rem}
+footer.site p{margin:0 0 .6rem;color:var(--hero-muted)}
+footer.site b{color:var(--hero-ink)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+
+.h-no{color:var(--accent-ink);margin-right:.15em}
+sup.fnref a{text-decoration:none;font-weight:700;font-size:.75em;padding:0 .1em}
+.fn p{margin:0 0 .5rem}
+.fn sup{font-weight:700;color:var(--accent-ink);margin-right:.2em}
+.abbr{max-width:700px;margin:1.4rem 0;background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:.2rem 1.1rem}
+.abbr summary{cursor:pointer;padding:.7rem 0;font-weight:600}
+.abbr dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:.3rem 1.2rem;margin:0 0 1rem;font-size:.95rem}
+.abbr dt{font-weight:700;color:var(--accent-ink)}
+.abbr dd{margin:0}
+.abbr p{margin:0 0 1rem;font-size:.95rem}
+table.data tr.grp td{background:var(--sunk);font-weight:700;font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+.hero h1{margin-bottom:.4rem}
+.hero .dek{font-size:var(--step-2);font-weight:400}
+.g-plot.short{height:320px}
+.g-view.fit{min-height:0}
+
+.g-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem 1.4rem}
+.g-pair .mini h5{font-family:var(--f-body);font-size:.92rem;margin:.2rem 0 0;color:var(--ink);font-weight:600}
+.g-pair .mini small{display:block;color:var(--muted);font-size:.78rem}
+.stack{display:grid;gap:.55rem}
+.stk-out,.stk-layer{border-radius:8px;padding:.7rem .8rem .6rem;border:1px solid var(--rule);transition:opacity .2s, box-shadow .2s}
+.stk-out{background:var(--accent);border-color:var(--accent)}
+.stk-out .stk-title{color:var(--surface)}
+.stk-layer.tone-rose{background:color-mix(in srgb,var(--accent) 9%,var(--surface))}
+.stk-layer.tone-blue{background:color-mix(in srgb,var(--cool) 14%,var(--surface))}
+.stk-layer.tone-sand{background:color-mix(in srgb,var(--ochre) 14%,var(--surface))}
+.stk-layer.dim{opacity:.38}
+.stk-layer.lit{box-shadow:0 0 0 2px var(--accent)}
+.stk-hd{display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem}
+.stk-n{width:1.6rem;height:1.6rem;border-radius:50%;background:var(--accent);color:var(--surface);display:grid;place-items:center;font-weight:700;font-size:.85rem;flex:none}
+.stk-title{font-family:var(--f-display);font-weight:600;font-size:1.02rem;color:var(--ink)}
+.stk-items{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.45rem}
+.stk-item{text-align:left;background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:.45rem .6rem;cursor:pointer;line-height:1.25;font-size:.88rem;color:var(--ink)}
+.stk-item b{display:block;font-weight:600}
+.stk-item small{display:block;color:var(--muted);font-size:.76rem;margin-top:.15rem}
+.stk-item:hover{border-color:var(--accent)}
+.stk-item[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--accent-wash)}
+.stk-o{font-weight:600;text-align:center}
+.stk-tag{margin:.45rem 0 0;font-size:.82rem;color:var(--ink-2);font-style:italic}
+.stk-derived{display:inline-block;font-style:normal;margin-left:.4rem;padding:.05rem .5rem;border-radius:999px;background:var(--surface);border:1px solid var(--rule);font-size:.76rem}
+.stk-detail{background:var(--sunk);border-radius:8px;padding:.9rem 1.1rem}
+.stk-detail .eyebrow{color:var(--accent-ink);font-size:.7rem}
+.stk-detail h4{font-size:1.1rem;margin:.2rem 0 .5rem}
+.stk-detail p{margin:0 0 .5rem;font-size:.93rem}
+.stk-detail dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:.3rem 1rem;margin:0;font-size:.92rem}
+.stk-detail dt{color:var(--muted)}
+.stk-detail dd{margin:0}
+.stk-links{display:flex;flex-wrap:wrap;gap:.35rem}
+.stk-links a{padding:.1rem .55rem;border-radius:999px;border:1px solid var(--rule);background:var(--surface);text-decoration:none;font-size:.85rem}
+.stk-links a:hover{border-color:var(--accent)}
+@media (max-width:640px){.g-pair{grid-template-columns:minmax(0,1fr)}.stk-items{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+
+@media (max-width:640px){
+  .g-top{flex-direction:column-reverse;gap:.25rem}
+  .g-fig{padding-top:0}
+  .g-title{font-size:1.12rem}
+  .g-sub{font-size:.9rem}
+  .g-controls{gap:.5rem;margin:.75rem 0 .3rem}
+  .g-tabs{max-width:100%;overflow-x:auto;scrollbar-width:none}
+  .g-tabs::-webkit-scrollbar{display:none}
+  .g-tab{padding:.3rem .55rem;font-size:.84rem;white-space:nowrap}
+  .g-tab svg{display:none}
+  .g-chips{flex-wrap:nowrap;overflow-x:auto;max-width:100%;padding-bottom:2px;scrollbar-width:none;-webkit-mask-image:linear-gradient(to right,#000 88%,transparent)}
+  .g-chips::-webkit-scrollbar{display:none}
+  .chip{white-space:nowrap;flex:none;font-size:.82rem}
+  .g-foot{flex-direction:column;align-items:stretch}
+  .g-meta{flex-basis:auto}
+  .g-actions{justify-content:flex-start}
+  .act{padding:.35rem .6rem;font-size:.82rem}
+  .menu{left:0;right:auto}
+  .learn dl,.stk-detail dl{grid-template-columns:minmax(0,1fr)}
+  .learn dt,.stk-detail dt{font-weight:600;margin-top:.3rem}
+  table.data th,table.data td{padding:.4rem .5rem;font-size:.84rem}
+  .hero h1{font-size:2.5rem}
+  .glance-in{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.8rem}
+  .stat b{font-size:1.25rem}
+  .pull{font-size:1.08rem}
+  section>h2{font-size:1.6rem}
+}
+@media (max-width:1100px){.page{grid-template-columns:minmax(0,1fr)}.rail{display:none}}
+@media (max-width:860px){.hero-in{grid-template-columns:minmax(0,1fr);padding-block:2.2rem 2rem}.hero-photo{aspect-ratio:16/9}.glance-in{grid-template-columns:repeat(2,minmax(0,1fr))}.recs{grid-template-columns:minmax(0,1fr)}.g-multi{grid-template-columns:repeat(2,minmax(0,1fr))}footer.site .in{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:560px){.tiles{grid-template-columns:minmax(0,1fr)}.g-multi{grid-template-columns:minmax(0,1fr)}.grapher{padding:.9rem .8rem .8rem}.g-plot{height:360px}.g-plot.tall{height:460px}.topbar-title{display:none}.t4 .b{padding-left:1.1rem}.t4 summary{grid-template-columns:2rem minmax(0,1fr)}.t4 .s{grid-column:2}.photo-break img{aspect-ratio:16/9}}
+</style>
+</head>
+<body style="margin:0">
+
+<header class="topbar">
+  <div class="topbar-in">
+    <a class="brand" href="#top" aria-label="GRAMA, back to top"><span class="brand-mark"><svg viewBox="0 0 14 14" aria-hidden="true"><rect x="2" y="7" width="2.4" height="5" fill="#fff"/><rect x="5.8" y="4" width="2.4" height="8" fill="#fff"/><rect x="9.6" y="1.5" width="2.4" height="10.5" fill="#fff"/></svg></span>GRAMA</a>
+    <span class="topbar-title">Redrawing the Map: Panchayat Delimitation in Bihar</span>
+    <span class="topbar-sp"></span>
+    <a class="act" href="#recommendations">Recommendations</a>
+  </div>
+  <div class="progress" id="progress"></div>
+</header>
+
+<div class="hero" id="top">
+  <div class="hero-in">
+    <div>
+      <span class="eyebrow">GRAMA Report · September 2026</span>
+      <h1>Redrawing the Map:</h1>
+      <p class="dek">A Policy Note on Panchayat Delimitation in Bihar</p>
+      <div class="hero-meta">
+        <span><b>GRAMA</b> · Patna, Bihar, India</span>
+        <span><b>Interactive edition</b> · charts, maps and data</span>
+      </div>
+      <div class="hero-actions">
+        <a class="btn solid" href="#summary">Executive Summary</a>
+        <a class="btn" href="#key-recs">Key Recommendations</a>
+      </div>
+    </div>
+    <div class="hero-photo"><img src="assets/photo-placards.jpg" alt="Villagers gathered at a public meeting in Bihar, holding placards"></div>
+  </div>
+</div>
+
+<div class="glance" aria-label="At a glance">
+  <div class="glance-in">
+    <div class="stat"><b class="num">33 years</b><span>since Gram Panchayat boundaries were last redrawn</span></div>
+    <div class="stat"><b class="num">10,961</b><span>people per GP on average under the 2011 Census</span></div>
+    <div class="stat"><b class="num">8,041 → 12,592</b><span>GPs planned (wards: 109,310 → 176,285)</span></div>
+    <div class="stat"><b class="num">58%</b><span>estimated increase in representative and staff expenditure</span></div>
+  </div>
+</div>
+
+<div class="page">
+  <nav class="rail" aria-label="Sections">
+    <h4>Contents</h4>
+    <ol id="toc">
+      <li><a href="#summary">Executive Summary</a></li>
+      <li><a href="#s2"><span class="n">2.</span>The Status Quo: Running on an Outdated Map</a></li>
+      <li><a href="#s3"><span class="n">3.</span>The Case for Closer Government</a></li>
+      <li><a href="#s4"><span class="n">4.</span>GP Size: Why It Matters</a></li>
+      <li><a href="#s5"><span class="n">5.</span>Ward Size: Why It Doesn’t</a></li>
+      <li><a href="#s6"><span class="n">6.</span>Simulating the New Map</a></li>
+      <li><a href="#s7"><span class="n">7.</span>What Delimitation Costs</a></li>
+      <li><a href="#s8"><span class="n">8.</span>How to Delimit Well</a></li>
+      <li><a href="#s9"><span class="n">9.</span>Getting the Transition Right</a></li>
+      <li><a href="#recommendations">Table 4: Summary of Recommendations</a></li>
+      <li><a href="#appendix-a">Appendix A: Data Inventory</a></li>
+      <li><a href="#appendix-b">Appendix B: Simulation Methodology</a></li>
+      <li><a href="#references">References</a></li>
+    </ol>
+  </nav>
+
+<article>
+
+<section id="summary">
+  <h2>Executive Summary</h2>
+  <div class="prose">
+    <p>The local government boundaries in Bihar are about to go through a major restructuring for the first time in over three decades. Gram Panchayat boundaries were fixed to the 1991 census, and while the state population has increased by 61 percent through five panchayat elections, the map has not moved (<a href="#s2">Section 2</a>). The state's July 2026 notification proposes to fix this: producing 12,592 GPs and 176,285 wards in place of today's 8,041 and 109,310. This exercise reduces the population to roughly 7,000 people per GP and 500 per ward, based on the 2011 census. In this report, we focus on the effects of the delimitation, the consequences of the delay and the potential challenges that need to be addressed. We also look at some crucial welfare outcomes at both the Gram Panchayat and Ward level, and how they can potentially change based on the restructuring. Additionally, we shed some light on the implementation process and propose recommendations based on data and theory.</p>
+    <p>Bihar's Gram Panchayats are unusually large even by Indian standards, at 10,961 people per GP, more than three times the national average, and the fourth-largest of any state, behind only West Bengal, Kerala, and Assam (<a href="#s2">Section 2</a>). Therefore, the move to increase the Gram Panchayat size is welcome and much needed to improve the local governance efficiency. This matches our own evidence directly: <strong>smaller GPs deliver more schools, health centres, water and sanitation access, NREGA workdays, and GPDP spending per capita</strong> (<a href="#s4">Section 4</a>). However, understanding how and where the delimitation will be most beneficial is important to ensure that the implementation is carried out in a successful and targeted manner. In <a href="#s6">Section 6</a> we simulate new GP boundaries under the state's own rules, using two internally consistent, fully algorithmic methods for grouping villages. The two methods produce meaningfully different maps from the same underlying rule, which shows how much discretion the current process leaves to individual district officials, and how a transparent, rules-based method can remove it.</p>
+  </div>
+  <p class="pull">“Bihar’s Gram Panchayats are unusually large even by Indian standards, at 10,961 people per GP, more than three times the national average, and the fourth-largest of any state, behind only West Bengal, Kerala, and Assam.”</p>
+  <div class="prose">
+    <p>The main crux of the report (<a href="#s4">Section 4</a>) focuses on whether the GP size predicts what residents actually experience? Across schools, health centres, water and sanitation infrastructure, NREGA workdays, and GPDP expenditure, the answer is consistently yes, which means that smaller GPs deliver more per capita. Comparing 2001 and 2011, the size penalty roughly quadrupled over the decade, meaning delimitation reduces the widening gap of access to public delivery goods. Smaller GPs are also more likely to elect better educated leaders who are better connected to local administration, although it is hard to isolate the well educated from the elite. Larger GPs tend to perform better in large scale infrastructure such as power, paved roads, mobile coverage etc.; which is not surprising given the economies of scale due to a bigger geographic scale. Nevertheless, we cannot use this fact against delimitation, since these goods can be provisioned at the block or district level regardless of GP size. Research from Uttar Pradesh's much smaller GPs suggests real gains remain available below it. Smaller GPs, on average, are therefore better and, if anything, the data suggests that the optimal size of a GP may be even lower as GP provision of public goods improves more as sizes fall below 7000.</p>
+    <p>The ward level analysis reveals a different story (<a href="#s5">Section 5</a>). We find no effect of the delimitation on any of the cross ward-level outcomes like citizen satisfaction, ward-member knowledge and confidence, whether the government spends on goods that citizens want, and public goods provision. Ward population size and ward-member count are essentially unrelated to what gets delivered. The major reason that explains this null result is that the ward population does not vary by much, especially in comparison to GPs. Another, more substantive reason is that ward members do not have funds or administrative powers, because of which they are unable to shape ward level outcomes. However, when powers are devolved, they can clearly perform effectively. Previous work in Bihar shows that when ward members were entrusted with the responsibility of implementing the Nal Jal (piped water scheme), they delivered meaningfully more piped-water connections than those handed to a centralised department. The practical implication, developed in <a href="#s8">Section 8</a>, is that <strong>the ward layer should be consolidated into fewer, more substantive seats with real authority, rather than multiplied by shrinking wards or adding members.</strong></p>
+  </div>
+  <p class="pull">“The ward layer should be consolidated into fewer, more substantive seats with real authority, rather than multiplied by shrinking wards or adding members.”</p>
+  <div class="prose">
+    <p>There are two key protective measures that are required to ensure smooth implementation and ensure representativeness does not get hindered (<a href="#s8">Section 8</a>). Firstly, <strong>dalit representation should carry an explicit floor of at least two SC ward members per GP</strong>, so that the proportional rule does not lead to fewer Dalit ward members. The literature documents that Dalit ward members have large, measurable effects on delivery, and consolidating wards will mechanically reduce their number unless a floor is set. Reservation is highly effective in this context, especially when some GPs have never been reserved. Therefore, <strong>the reservation rotation that determines which GPs are reserved for SC, ST, or OBC leadership should carry forward into the new boundaries rather than restart from zero</strong>, so all GPs get their turn on time.</p>
+    <p>The process of delimitation also requires a substantial fiscal cost that needs to be planned carefully. It is estimated to increase the combined expenditure on representatives salaries by 58 percent. However, the increase in expenses will also mean more funds available per person as funding allocation happens at the GP level and now with smaller GPs, an additional budget will allow for better provisioning of public goods for its citizens.</p>
+    <p>The biggest challenge to this whole exercise is the transition itself (<a href="#s9">Section 9</a>). Bihar has let local democracy lapse before, with panchayat elections being delayed for 23 years, from 1978 to 2001, and evidence from interim bureaucratic administration in Karnataka shows real costs to citizens when elected leadership is replaced by appointed officials, even temporarily. Our recommendation is that delimitation proceed quickly, on a hard statutory deadline, using a transparent and fully algorithmic boundary-drawing method, with elections held on schedule. It is crucial to restructure the boundaries properly and on time to minimise any frictions that may cause any disturbance.</p>
+  </div>
+  <p class="pull">“The reservation rotation that determines which GPs are reserved for SC, ST, or OBC leadership should carry forward into the new boundaries rather than restart from zero, so all GPs get their turn on time.”</p>
+  <div class="prose">
+    <p>This report draws on five linked layers of data covering every Gram Panchayat and ward in Bihar, from Census and administrative records through to our own primary surveys and boundary simulations. The infographic below maps how these sources connect.</p>
+  </div>
+  <figure class="grapher" id="fig-stack" data-fig="stack"></figure>
+
+  <h3 class="sub" id="key-recs">Key Recommendations</h3>
+  <p class="cap" style="margin-top:0">Condensed from <a href="#recommendations">Table 4</a>.</p>
+  <div class="recs">
+    <div class="rec"><h4>Boundaries &amp; GP Size</h4><ul>
+      <li>Proceed with delimitation on the 2011 census base without further delay.</li>
+      <li>Adopt a transparent, fully algorithmic boundary-drawing method to remove scope for informal favoritism.</li>
+      <li>Further steps, like regularly updating boundaries as the population changes, are needed in addition to this delimitation to reduce the widening gap in welfare outcomes.</li>
+      <li>Consider setting the GP target below 7,000, since the data show gains continuing at smaller sizes.</li>
+      <li>Keep provisioning large-scale infrastructure (power, roads) at the block/district level regardless of GP size.</li></ul></div>
+    <div class="rec"><h4>Wards</h4><ul>
+      <li>Consolidate the ward layer into fewer, more substantive seats with real powers, and invest in peer learning for ward members.</li>
+      <li>Preserve or restore local implementation authority to ward members for schemes suited to local execution (e.g., Nal Jal).</li></ul></div>
+    <div class="rec"><h4>Representation</h4><ul>
+      <li>Set a floor of at least two SC ward members per GP (capped around five) so consolidation does not mechanically erase Dalit representation.</li>
+      <li>Carry forward existing reservation status into new GP boundaries instead of resetting the rotation from zero.</li></ul></div>
+    <div class="rec"><h4>Cost &amp; Timeline</h4><ul>
+      <li>Budget explicitly for the ~58% rise in representative and staff expenditure; align with the Finance Commission’s OSR-linked Performance Grant to help offset it.</li>
+      <li>Set a hard statutory deadline and hold elections on schedule.</li></ul></div>
+  </div>
+
+  <details class="abbr">
+    <summary>Abbreviations</summary>
+    <dl>
+      <dt>BDO</dt><dd>Block Development Officer</dd>
+      <dt>GIS</dt><dd>Geographic Information System</dd>
+      <dt>GP</dt><dd>Gram Panchayat</dd>
+      <dt>GPDP</dt><dd>Gram Panchayat Development Plan</dd>
+      <dt>GRAMA</dt><dd>Governance Research and Accountability for Meaningful Advancement</dd>
+      <dt>LSBA</dt><dd>Lohiya Swachh Bihar Abhiyan</dd>
+      <dt>MIS</dt><dd>Management Information System</dd>
+      <dt>NREGA / NREGS</dt><dd>National Rural Employment Guarantee Act / Scheme</dd>
+      <dt>NRHM</dt><dd>National Rural Health Mission</dd>
+      <dt>OBC</dt><dd>Other Backward Class</dd>
+      <dt>OSR</dt><dd>Own-Source Revenue</dd>
+      <dt>PHED</dt><dd>Public Health Engineering Department</dd>
+      <dt>PRI</dt><dd>Panchayati Raj Institution</dd>
+      <dt>RCT</dt><dd>Randomised Controlled Trial</dd>
+      <dt>SC / ST</dt><dd>Scheduled Caste / Scheduled Tribe</dd>
+      <dt>SD</dt><dd>Standard Deviation</dd>
+      <dt>WIMC</dt><dd>Ward Implementation and Management Committee</dd>
+      <dt>WM</dt><dd>Ward Member</dd>
+    </dl>
+  </details>
+</section>
+
+<section id="s2">
+  <h2><span class="h-no">2.</span> The Status Quo: Running on an Outdated Map</h2>
+  <div class="prose">
+    <h3 class="sub">The 1991 Rule, by the Numbers</h3>
+    <p>The prevailing delimitation based on 1991 census populations was enacted by the Bihar Panchayati Raj Act, 1993, formally notified through its publication in the Bihar Gazette on August 23, 1993. This was in place by the 2001 panchayat election, the first held in Bihar in 23 years (Gupta, 2001). Elections have since run on the same map in 2006, 2011, 2016, and 2021.</p>
+    <p>At the moment, Bihar has 8,041 Gram Panchayats, with 109,310 wards. Since these figures were based on the 1991 Population Census, the working standard of around 7,000 people per GP was met in 1991, with an average of 6,883 people per GP. However, by 2001, the GP population density rose to 8,832 people, and the latest 2011 population figures suggest an average of 10,961 people in each GP. Wards are similarly over-saturated. Between 1991 and 2011, population density rose from around 500 to 806, and representation fell from 2.01 to 1.25 ward members per 1,000 people, a 38 percent dilution on a fixed map. <a href="#fig-1">Figure 1</a> presents district-wise average populations in GPs and wards respectively, across Bihar.</p>
+  </div>
+  <figure class="grapher" id="fig-0" data-fig="f0"></figure>
+  <div class="prose">
+    <h3 class="sub">The New Rule, by the Numbers</h3>
+    <p>On July 20, 2026, the Panchayati Raj Department announced it will redraw Gram Panchayat (GP) boundaries for the first time in 33 years. The new map uses data from the 2011 Census. By law, each GP is supposed to have about 7,000 people, and each ward should have 500. To meet these targets, the government plans to create 12,592 GPs and 176,285 wards.</p>
+    <p>This massive expansion is needed because the map was ignored for decades. If the boundaries had been updated back in 2001, the number of GPs would have only grown by 29 percent. Because the state waited to use the 2011 numbers, it now needs a 57 percent increase in GPs and a 61 percent increase in wards just to catch up to the old data.</p>
+    <p>However, even this new map is already behind reality. Because the government is relying on 2011 data, the numbers are 15 years out of date. On paper, a new GP is designed for 7,000 people. But due to actual population growth, these new GPs will hold well over 9,000 people from the very first day.</p>
+  </div>
+  <div class="context"><span class="eyebrow">Key context</span><p>The state plans 12,592 GPs (up from 8,041) and 176,285 wards (up from 109,310), catching up to a GP that today averages 10,961 people under the 2011 Census.</p></div>
+  <figure class="grapher" id="fig-1" data-fig="f1"></figure>
+  <figure class="grapher" id="fig-1b" data-fig="f1b"></figure>
+  <div class="prose">
+    <p>Bihar has very large Gram Panchayats compared to the rest of India. Based on the 2011 Census rural data, Bihar's 8,051 GPs have an average of 11,470 people each. This is more than three times the national average of 3,418. Bihar has the fourth-highest average in the country, behind only West Bengal (18,623), Kerala (18,567), and Assam (12,229) (<a href="#table-1">Table 1</a>).</p>
+    <p>Other large states keep their panchayats much smaller. Uttar Pradesh has over four times the population of Bihar, but it divides that population across 57,694 GPs averaging just 2,692 people. Maharashtra and Madhya Pradesh have overall populations similar to Bihar, yet their GPs average only 2,193 and 2,284 people.</p>
+  </div>
+  <figure class="grapher" id="table-1" data-fig="t1"></figure>
+  <div class="prose">
+    <p>Across the country, the median state averages fewer than 2,900 people per GP, which is about a quarter of Bihar's size. Because Bihar still uses the 1991 map, its local governments operate at a much larger scale than the national norm.</p>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><span class="h-no">3.</span> The Case for Closer Government</h2>
+  <div class="prose">
+    <h3 class="sub">Why Closeness Matters</h3>
+    <p>The idea behind local government is straightforward: decisions should be made as close to the people as possible. Two main arguments support this. First, local leaders have better information. A representative living in the community knows exactly which hand pump is broken, which family missed their rations, and which dirt road actually gets used. An official sitting in a higher office far away does not have this daily knowledge. Second, citizens can hold local leaders directly accountable. When people can easily meet, question, and vote out the person making decisions, that leader is more likely to solve local problems quickly. Therefore, the local government must stay closely connected to the citizens. The direct link breaks down when a local body becomes too large.</p>
+    <h3 class="sub">India's Unfinished Devolution</h3>
+    <p>India's Constitution officially created a third level of government for villages and towns through the 73rd and 74th Amendments. This allowed citizens to directly elect their local representatives. However, state governments never fully transferred the funds, daily responsibilities, and staff that these local bodies need to survive. George et al. (2024) document this gap in detail. They show that Panchayats have almost no way to raise their own revenue and must rely entirely on grants from the state and central governments. Local governments also suffer from a severe shortage of workers. Across the country, there is on average less than one Panchayat Secretary available per village, and in places like Uttar Pradesh, the ratio falls to just one secretary for every three villages.</p>
+    <p>The same study notes that recent technology upgrades have taken even more power away from local leaders. Higher-level officials increasingly use digital databases and Management Information Systems (MIS) to decide who receives welfare benefits, rather than letting the Panchayat make those choices based on their local knowledge. Ultimately, the system allows villages to hold full elections, but it denies those elected leaders the money and administrative tools they need to actually govern their communities.</p>
+  </div>
+  <div class="context"><span class="eyebrow">Key context</span><p>Local governments in India can hold full elections, yet still lack the funds, staff, and administrative tools they need to actually govern their communities.</p></div>
+  <div class="prose">
+    <h3 class="sub">A Thin State at the Base</h3>
+    <p>The lack of funds and power highlights a deeper problem: the Indian government has the fewest staff exactly where it interacts with citizens the most. Compared to its total population, India has a small number of public employees, and most of them work at the top levels of government (Kapur, 2020).</p>
+    <p><a href="#fig-2">Figure 2</a> shows this contrast clearly. Countries like the United States and China assign the vast majority of their government workers to the local level, creating an upward curve in the middle of the graph. India shows the exact opposite pattern. India's public employment dips to its absolute lowest at the local level, around 10 to 15 percent, while climbing highest at the state level, which holds over 50 percent of the workforce.</p>
+    <p>Because of this structure, a local ward member or Panchayat secretary must serve thousands of people with almost no administrative support. They simply do not have the staff that a district or state office takes for granted. Local government cannot effectively solve local problems if it does not have the people required to do the actual work.</p>
+  </div>
+  <div class="context"><span class="eyebrow">Key context</span><p>Local government holds only 10–15% of India's public employees against 50%+ at the state level, even as Bihar's ward representation thinned from 2.01 to 1.25 reps per 1,000 people between 1991 and 2011.</p></div>
+  <div class="prose">
+    <h3 class="sub">Bihar's Deeper Version of the Problem</h3>
+    <p>In Bihar, this lack of local staff is even worse because the local governments cover massive populations. Back in 1991, the government decided a Gram Panchayat should serve about 7,000 people. Even then, 7,000 people was a very large number for a small local office to manage.</p>
+    <p>Over the next thirty years, the government never updated the map. While Bihar's overall population grew by 61 percent between 1991 and 2011, the Panchayat boundaries stayed exactly the same. As a result, the average number of people in a Gram Panchayat rose from 6,883 in 1991 to 10,961 by 2011.</p>
+    <p>Individual wards became incredibly crowded as well. The number of people in an average ward increased from about 500 to 806. Because the map never changed, the number of local representatives for every 1,000 people dropped from 2.01 down to 1.25. Over three decades, local leaders have been forced to take care of far more people with the exact same resources.</p>
+  </div>
+  <figure class="grapher" id="fig-2" data-fig="f2"></figure>
+</section>
+
+<div class="photo-break"><img src="assets/photo-canal.jpg" alt="Women working on a canal-digging worksite in rural Bihar" loading="lazy"></div>
+
+<section id="s4">
+  <h2><span class="h-no">4.</span> GP Size: Why It Matters</h2>
+  <div class="prose">
+    <p>This section asks a simple question: does GP size actually change what residents experience? If smaller GPs consistently provide more, more schools, more health infrastructure, better-connected officials, and more educated leaders, that strongly supports the government's plan to redraw the boundaries. If larger GPs perform better, or if size makes no difference, the government should proceed with caution.</p>
+    <p>We answer this using three data sources: administrative scheme records (NREGA MIS, GPDP expenditure, Nal Jal/Nali Gali, Mission Antyodaya), the Census Village Directories (1991, 2001, 2011), and our own surveys of citizens, ward members, and Mukhiyas (the elected heads of GPs). <a href="#appendix-a">Appendix A</a> summarizes all the data used in this section. To measure this, we show how much each outcome changes for every additional 1,000 people in a GP. We also mark both the proposed 7,000-person target and the current average GP size on the charts.<sup class="fnref"><a href="#fn1" id="fnr1">1</a></sup></p>
+    <p>We organize this evidence into five parts. We show that smaller GPs deliver more of almost everything per person in 2011. We show the one exception: large-scale trunk infrastructure, where bigger GPs perform better because they can pool resources. We look at what citizens actually want from public schemes, showing that GP size does not change how well spending matches those preferences. We ask whether smaller GPs elect different types of representatives. We show that this penalty for living in a large GP grew significantly worse between 2001 and 2011 due to the prolonged delay in delimitation. Finally, we ask whether the proposed 7,000 target is actually small enough.</p>
+    <h3 class="sub">Smaller GPs Deliver More</h3>
+    <p>When a GP grows in population, the provision of local public goods consistently drops. We see this across nearly every outcome we examined, including infrastructure like public schools, health centres, and piped-water availability. We also see it in public works programs, specifically the schemes for drain and lane construction (Nali Gali) and tap water provision (Nal Jal). To measure citizen welfare, we track the number of work days provided under NREGA and a general welfare index we built from surveying nearly 10,000 citizens across 10 districts in Bihar.<sup class="fnref"><a href="#fn2" id="fnr2">2</a></sup></p>
+    <p>The numbers below show how much the per-capita availability drops for every additional 1,000 people in a GP.</p>
+    <p>Primary schools per 1,000 people fall by 3.1% of the mean, middle schools by 3.9%, and secondary schools by 2.8%; primary schools are shown in Figure 3a. Health centres per 1,000 people fall by 3.4% (Figure 3b). Nal Jal and Nali Gali projects per 1,000 people fall by 4.9% each (Figure 3c), and households with piped water per 1,000 people fall by 2.9% (Figure 3d). NREGA persondays per person over 2021–24 fall by 4.8% for every extra 1,000 people in the GP (Figure 3e). Our general welfare index confirms this, falling by 0.014 for every additional 1,000 people.</p>
+    <p>Taken together, these results prove that smaller GPs perform better at providing public goods and welfare. The way a GP is funded explains why this happens. Gram Panchayat Development Plan (GPDP) spending per person drops by 48.8 INR for every additional 1,000 people in the GP (Figure 3f). To put this in context: when a GP’s population increases by 1 percent, its total GPDP budget only increases by 0.43 percent. Because budgets are handed out mostly per GP rather than per person, smaller GPs receive more funding per resident. This is also why creating more GPs will cost the state more money in total, which we explain further in <a href="#s7">Section 7</a>.</p>
+  </div>
+  <figure class="grapher" id="fig-3" data-fig="f3"></figure>
+  <div class="prose">
+    <p>The GPDP figures above are planned allocations, the amounts budgeted under the Gram Panchayat Development Plan, not money that has actually reached residents. To check whether the pattern holds for real spending, we also look at actual GPDP expenditure. We use eGramSwaraj records of every XV Finance Commission work in the 2024–25 GPDP across all 38 districts, and divide each GP’s actual expenditure by its 2011 population. The average GP spent 226 INR per person, and this falls by 8.6 INR, or about 4 percent of the average, for every additional 1,000 people in the GP (<a href="#fig-4">Figure 4</a>). GPs of 5,000–7,500 people spent 279 INR per person, compared with 183 INR in GPs of 15,000–20,000 people. As with planned budgets, total spending does not keep pace with population: a GP with 1 percent more people spends only about 0.59 percent more in total.</p>
+    <p>This gap comes from how much money each GP has per resident, not from how quickly it spends. Smaller GPs do not spend a larger share of what they plan: GPs of every size had spent roughly 26–27 percent of the estimated cost of their planned works, and this share does not change with GP size. As with the other results in this section, these are comparisons across existing GPs. They show that residents of smaller GPs currently receive more GPDP spending per person.</p>
+  </div>
+  <div class="context"><span class="eyebrow">Key context</span><p>Actual GPDP expenditure confirms the planning-stage pattern: the average GP spends 226 INR per person, falling by about 4 percent for every additional 1,000 people, even though the share of the budget actually spent (roughly 26–27 percent) does not vary with GP size.</p></div>
+  <figure class="grapher" id="fig-4" data-fig="f4"></figure>
+
+  <div class="prose">
+    <h3 class="sub">The Exception: Trunk Infrastructure</h3>
+    <p>We now turn our attention to trunk infrastructure: the main network of shared core facilities such as major roads and power grids that service an entire region, instead of a single property. Domestic power hours, the share of villages with a major district road, and mobile coverage all rise with GP size, by 1.1%, 2.4%, and 1.3% of the mean respectively for every additional 1,000 people in GP population (<a href="#fig-5">Figure 5</a>). Unlike schools, health centres, or toilets, goods that are essentially replicated village by village and so scale linearly with population, these outcomes belong to large, lumpy trunk infrastructure.</p>
+    <p>Power lines, grid capacity, paved district roads, and mobile towers all require a substantial fixed investment that is easier to justify, and to amortize, over a larger population base. Larger GPs are consequently better placed to support this kind of infrastructure, forming economies of scale, that is, GPs benefit from cost advantages as the scale of the operation increases. Naturally, we would expect this to run in the opposite direction from the small-GP advantage documented previously.</p>
+    <p>That said, this interpretation warrants caution. Larger GPs may be concentrated in more densely populated areas where trunk infrastructure is inherently more viable. The observed relationship may therefore reflect population density rather than GP size itself, making it difficult to isolate whether these apparent economies of scale arise from larger administrative units or from the density of the populations they serve.</p>
+  </div>
+  <div class="context"><span class="eyebrow">Key context</span><p>For every 1,000 additional people in a GP, domestic power hours rise by 1.1%, the share of villages with a major district road rises by 2.4%, and mobile coverage rises by 1.3% of the mean: trunk infrastructure that favors bigger GPs.</p></div>
+  <figure class="grapher" id="fig-5" data-fig="f5"></figure>
+
+  <div class="prose">
+    <p>Smaller GPs generally build more public goods, but we wanted to know if their spending actually matches what citizens want. We tested whether smaller GPs listen to citizen demands better than larger ones. To figure this out, we created a way to measure alignment. For every GP, we compared how much they spent on a specific scheme through the Gram Panchayat Development Plan (GPDP) against the percentage of citizens who actually asked for that scheme. A higher match means the GP is spending its money on exactly what its people requested.</p>
+    <p>We need to point out two important limitations to this data. First, our survey only covers 10 districts, so it might not perfectly represent the entire state of Bihar. Second, our analysis only measures what citizens want from their local government, not what they want from the government as a whole. For example, people naturally expect local leaders like Mukhiyas and ward members to handle local issues like piped water and drainage. At the same time, they expect the state government to pay for larger projects like schools and primary health centers. These answers simply reflect how duties and resources are divided between different levels of government in Bihar and across the rest of India. Figure 6a uses all 19 GPDP scheme heads<sup class="fnref"><a href="#fn3" id="fnr3">3</a></sup>; Figure 6b restricts the analysis to the five core, high-salience schemes: Nali Gali (drains/lanes), Nal Jal (piped water), Solar Panels, Toilet Provision, and the Lohia Swachh Bihar Abhiyan (LSBA) (sanitation). These are the schemes with meaningful preference and cost coverage in a substantial share of GPs. In both cases, the curve is flat across the population range, with no visible trend. Unlike the per-capita provision outcomes elsewhere in this section, GP size does not predict how well a GP’s spending tracks its citizens’ stated preferences.</p>
+  </div>
+  <div class="context"><span class="eyebrow">Key context</span><p>GP size predicts how much of what citizens receive, but not how well GP spending matches what citizens actually asked for: that alignment is flat regardless of population.</p></div>
+  <figure class="grapher" id="fig-6" data-fig="f6"></figure>
+
+  <div class="prose">
+    <h3 class="sub">Who Gets Elected</h3>
+    <p>Smaller GPs elect more competent leaders. We measure this competence directly by looking at their years of formal schooling, which we calculate based on each leader’s official educational qualification category. For every extra 1,000 people added to a GP, the Mukhiya’s education falls by 3.3% (Figure 7a). Ward members show the exact same pattern. Based on a massive sample of 60,381 wards, a ward member’s education drops by 5.7% for every extra 100 people in their ward (Figure 7b).</p>
+  </div>
+  <figure class="grapher" id="fig-7" data-fig="f7"></figure>
+  <div class="prose">
+    <p>However, this increase in education comes at a cost to everyday representation. We measure this using a “representativeness gap.” This gap compares the standardized education level of a Mukhiya’s father against the average education of a regular citizen’s father in that same GP. A positive gap means the leader comes from a more elite, highly educated family background than the voters they represent. This gap falls by 0.054 for every extra 1,000 people in the GP, which means smaller GPs are the ones that tend to elect these more elite Mukhiyas (Figure 8a). Although this specific estimate relies on a smaller 19 percent sample of our data, this trade-off between representativeness and competence is well-documented in local governance (Bamezai et al. (2026b)).</p>
+    <p>Research shows that electing elite leaders can often harm public welfare. For example, Besley et al. (2012) document that leaders from less wealthy, non-elite households have policy preferences that align much better with the needs of average citizens. When elites capture local governments, they often steer public resources toward their own political networks rather than targeting the poorest households.</p>
+    <p>Finally, smaller local governments produce leaders who are better connected to the local administration. The share of ward members who report knowing the Block Development Officer (BDO) drops by 1.8% for every extra 1,000 people in the GP (Figure 8b).</p>
+    <p>This risk highlights why political reservations here are essential. By mandating leadership quotas for marginalised groups, the state creates a safeguard against elite capture. Reservations force representativeness back into the system, ensuring that citizens can enjoy the structural benefits of a smaller GP without losing their voice to traditional elites.</p>
+  </div>
+  <div class="context"><span class="eyebrow">Key context</span><p>For every 1,000 additional people in a GP, Mukhiya schooling falls by 3.3%, the representativeness gap narrows by 0.054, and the share of ward members who know their BDO drops by 1.8%.</p></div>
+  <figure class="grapher" id="fig-8" data-fig="f8"></figure>
+
+  <div class="prose">
+    <h3 class="sub">A Widening Penalty, 2001–2011</h3>
+    <p>By comparing data from the 2001 and 2011 Census Village Directories, we see that delaying boundary changes created a penalty that worsened over time. To track this, we look at education and health infrastructure, domestic power, and paved roads. We also combine all these indicators into a single public goods index to calculate an overall score.</p>
+    <p>Back in 2001, the disadvantage of living in a large GP was relatively small. For every extra 1,000 people, the overall public goods index dropped by only 0.0045 (Figure 10a). This drop was driven almost entirely by a lack of primary schools, while the number of health centres per person remained the same regardless of GP size (Figure 10c). At that time, connectivity goods actually favoured larger GPs.</p>
+    <p>Fast forward to 2011, and this penalty quadrupled to a drop of 0.019 (Figure 10b). The gap in health infrastructure appeared entirely during this ten-year window. While every GP received more health centres during the National Rural Health Mission (NRHM) build-out, small GPs gained roughly twice as much per person compared to large ones (Figure 10c–Figure 10d).</p>
+  </div>
+  <figure class="grapher" id="fig-10" data-fig="f10"></figure>
+  <div class="prose">
+    <p>We can confirm this widening gap by looking directly at the rate of change rather than just the final numbers. Between 2001 and 2011, as GP population increases, the growth in health centres per 1,000 people, primary schools per 1,000 people, and the overall index all significantly slow down (Figure 9a, Figure 9b, Figure 9c). Large GPs did not just start in a worse position in 2001; they also fell further behind over the next ten years.</p>
+    <p>Part of this gap exists simply because the populations of large GPs grew much faster during this period (Figure 9d). However, the main reason they fell behind is that they built new facilities at a much slower pace. Freezing the boundaries to the 1991 map did not just lock in the disadvantages for larger GPs. It actively made things worse every single year. Proceeding with the new delimitation will finally stop this compounding penalty.</p>
+  </div>
+  <div class="context"><span class="eyebrow">Key context</span><p>The public-goods-index penalty for every extra 1,000 people in a GP grew from 0.0045 in 2001 to 0.019 in 2011, roughly a fourfold increase over the decade.</p></div>
+  <figure class="grapher" id="fig-9" data-fig="f9"></figure>
+
+  <div class="prose">
+    <h3 class="sub">Is 7,000 Small Enough?</h3>
+    <p>Across all our data for GPs with populations between 5,000 and 20,000, the trend forms a straight line. Smaller GPs simply perform better. Pushing the average GP size down from roughly 12,000 to 7,000 is a massive improvement, but it raises an important question: what is the actual ideal size? Narasimhan and Weaver (2024) explored this exact question for Gram Panchayats in Uttar Pradesh and also found that smaller populations lead to much better access to public goods.</p>
+    <p>In Uttar Pradesh, the average GP has only 2,692 people across a total of 57,694 GPs. This is far smaller than both Bihar’s current and proposed sizes. They found that moving villages into even smaller GPs by reducing their population by 368 to 649 people created meaningful gains across the board. Middle-school access improved significantly, with the advantage for smaller GPs widening from 1.9 percentage points in 2001 to 4.9 percentage points by 2011. Toilet ownership grew by 3.3 percentage points, which is roughly a 17 percent increase over the baseline, while open defecation dropped by 3.4 percentage points. The overall delivery of welfare programs improved by 0.09 standard deviations, and NREGS delivery increased by 0.15 standard deviations.</p>
+    <p>In their study, this relationship is not just a straight line. The data shows that the absolute best size for a GP is between 1,000 and 2,500 people. At this size, the village is small enough to elect its own local leader (Pradhan), which is exactly where these benefits come from.</p>
+    <p>Bihar’s proposed target of 7,000 is still nearly three times larger than Uttar Pradesh’s average of 2,692. It is also well above the 1,000 to 2,500 range that Narasimhan and Weaver identified for the strongest results. Our own charts (<a href="#fig-3">Figure 3</a>, <a href="#fig-7">Figure 7</a>) confirm that we could unlock even more improvements by shrinking GPs further. Therefore, the 7,000 target should be viewed as a starting point rather than a final ceiling. Neither the data from Uttar Pradesh nor our own findings suggest that the benefits of shrinking a GP stop at 7,000 people.</p>
+  </div>
+  <div class="context"><span class="eyebrow">Key context</span><p>The 7,000-person target should be read as a floor to build from, not a ceiling: Uttar Pradesh’s much smaller GPs (2,692 average) still show gains at 1,000–2,500 people.</p></div>
+  <div class="fn">
+    <p id="fn1"><sup>1</sup> To do this accurately, we compare GPs within the same block while controlling for distance to the nearest town and the GP’s SC population share. We only look at GPs with populations between 5,000 and 20,000 to prevent extreme outliers from skewing the results, and we cluster the standard errors by block. The accompanying figures show this relationship with a 95 percent confidence band. <a href="#fnr1" aria-label="Back to text">↩</a></p>
+    <p id="fn2"><sup>2</sup> We built the welfare availment index by averaging five standardized indicators: whether a citizen received a job card, ration card, pension, toilet scheme, or Awas (housing) benefit. We measure these outcomes using z-scores. <a href="#fnr2" aria-label="Back to text">↩</a></p>
+    <p id="fn3"><sup>3</sup> The 19 schemes are: (1) Nal Jal; (2) Nali Gali; (3) MGNREGA; (4) Pension (Old-age Pension, Chief Minister Pension); (5) Shauchalay (Toilet); (6) Ration Card; (7) Pradhan Mantri Awas; (8) Solar Light; (9) Lohiya Swachh Bihar Abhiyan – Solid and Liquid Waste Management (LSBA-SLWM); (10) Jal Jeevan Hariyali Abhiyan; (11) Scholarships; (12) RTPS Certificates (Income, Caste, Birth/Death, Residence); (13) Education/School; (14) Kanya Vivah Yojana Bihar; (15) Bihar Lok Shikayat; (16) Ayushman Card; (17) Vishwakarma Yojana / Udyami Yojana / Kaushal Vikas Yojana; (18) any other agriculture-related scheme; and (19) Healthcare. <a href="#fnr3" aria-label="Back to text">↩</a></p>
+  </div>
+</section>
+
+<div class="photo-break"><img src="assets/photo-meeting.jpg" alt="A ward-level meeting of women and men seated in a village in Bihar" loading="lazy"></div>
+
+<section id="s5">
+  <h2><span class="h-no">5.</span> Ward Size: Why It Doesn’t</h2>
+  <div class="prose">
+    <p>We analysed various outcomes at the ward level as well. Across the ten-district survey data, ward population size is null on essentially everything we measure: Ward Member (WM)/citizen priority overlap, WM confidence, WM knowledge, citizen satisfaction, public goods provision, and welfare indices are all flat against ward size (<a href="#fig-11">Figure 11</a>). The one exception is WM education, where smaller wards have more educated ward members, the same pattern we find at the Mukhiya level (<a href="#fig-7">Figure 7b</a>). If ward size mattered for what a ward member is actually meant to do, it should show up somewhere on this list but it does not.</p>
+    <p>Two explanations fit this, and they are not mutually exclusive. First, ward members hold no formal powers. They do not determine the budgets, sanction any projects or development activities, or have any administrative authority separate from the Mukhiya. If a position carries no real powers, there is little reason for the population it represents to matter, since there is nothing for that population to act on. Second, the observed range of ward sizes in Bihar (roughly 500 to 1,200 people) may simply be too narrow for size to make a difference even if ward members did have real authority. A ward member serving 500 people is not meaningfully easier to hold accountable than one serving 1,200. This second point bears directly on delimitation, since the proposal under consideration moves the average ward from around 750 people to around 500. Even if we granted ward members full powers and set the first explanation aside, a shift of this size sits well within a range where the data already show no effect.</p>
+  </div>
+  <figure class="grapher" id="fig-11" data-fig="f11"></figure>
+  <div class="prose">
+    <p>Generally, the total number of ward members matters as little as their size. Looking at GPs that gained an additional ward member, irrespective of who that member is, GP-level workdays rise by only around 238, which is a statistically insignificant effect (George et al. (2025)). It cannot be ascertained that this increase is meaningfully different from zero. Adding a body to the ward layer does not translate into more work getting done, consistent with the same structural point: a ward member with no formal powers does not become more effective just because there are more of them. However, there is a clear exception to this rule: gaining three or more additional Scheduled Caste (SC) ward members actually increases public welfare outcomes.<sup class="fnref"><a href="#fn4" id="fnr4">4</a></sup></p>
+    <p>Instead of multiplying the ward layer by shrinking ward size or adding ward members, decentralising it into fewer wards with greater powers might be more beneficial. The Har Ghar Nal ka Jal project under the Chief Minister’s Saat Nischay Yojana presents an ideal setting to test this. In 2016, project implementation was decentralized to ward members through the Ward Implementation and Management Committees (WIMC). However, from May 2023, responsibility for all wards was handed over to the Public Health Engineering Department (PHED). This policy shift was based on the claim that the experience of the previous years showed that ward members lacked expertise in running and maintaining Nal Jal projects.</p>
+    <p>Our analysis of village-level data on piped water availability (GRAMA (2024)) tells a different story. It shows that neighbouring wards in villages with PHED implementation actually have 7.9% to 21.8% fewer water connections compared to wards where implementation was handled directly by the ward members (<a href="#fig-12">Figure 12</a>). This local improvement primarily takes place through the channels of ward members from SC/ST communities, because their wards are given priority in allocating Nal Jal projects, and they face greater local accountability to the citizens.</p>
+  </div>
+  <div class="context"><span class="eyebrow">Exception that proves the rule</span><p>Gaining three or more additional SC ward members does increase public welfare outcomes: representation matters even where raw ward size doesn’t. Powers, not headcount, are what make the ward layer work.</p></div>
+  <figure class="grapher" id="fig-12" data-fig="f12"></figure>
+  <div class="fn">
+    <p id="fn4"><sup>4</sup> This contrasts with what happens outside of Bihar. Weaver and Narasimhan (2026) find a different pattern across India, where simply having more ward members, including more Dalit ward members, does not seem to change how well local governments perform. They note that adding 1.4 ward members, or 0.4 SC ward members (which increases the share of SC ward members by 4.4 percentage points), has little effect on any of the outcomes they study, including NREGA workdays and access to welfare programmes. Other measures of local government performance also show little change: projects remain about as well aligned with what citizens want, benefits remain similarly distributed across villages, and there is no clear change in financial or social audit violations. We do not observe this flat pattern in Bihar. <a href="#fnr4" aria-label="Back to text">↩</a></p>
+  </div>
+</section>
+
+<section id="s6">
+  <h2><span class="h-no">6.</span> Simulating the New Map</h2>
+  <div class="prose">
+    <p>The Panchayati Raj Department has set forth the rule that new Gram Panchayats (GPs) should have about 7,000 people. To visualise how the new map will look like, we simulate the new boundaries under the new rule by grouping existing revenue villages within each block until they reach this target. <a href="#appendix-b">Appendix B</a> explains the exact steps we followed.</p>
+    <p>It is useful to simulate the new boundaries because under the current rules, local district officials decide exactly which villages get grouped together, and the District Magistrate makes the final decision on the boundaries. Because this process relies on human judgment, two officials can follow the exact same rules and still draw completely different maps.</p>
+    <p>We tested two different ways to group the villages to see how much this human discretion matters. The exercise reveals two main things. First, the grouping method directly changes the total number of GPs created. We already see this problem on the current map, where average GP sizes vary a lot across districts even though they all rely on the same 1991 baseline. Second, a computer algorithm guarantees the exact same map every single time. A scientific, rules-based system removes the chance for officials to manipulate boundaries to favour specific politicians or villages.</p>
+    <p>Our algorithm builds GPs by adding one village at a time until the population reaches 7,000. We tested a “strict” rule and a “closest” rule. Under the strict rule, the program always adds the final village that pushes the total over the line, meaning every GP has at least 7,000 people. Under the closest rule, the program checks whether the total is mathematically closer to 7,000 with or without that final village. This means a GP can end up slightly above or slightly below 7,000 people.</p>
+  </div>
+  <figure class="grapher" id="fig-13" data-fig="f13"></figure>
+  <div class="prose">
+    <p><a href="#fig-13">Figure 13</a> shows how these two methods compare to the current map in the Kadwa block of Katihar. The closest method creates the highest number of GPs with the lowest average population (<a href="#fig-14">Figure 14</a>). However, this method creates far more GPs than the government's target of 12,592. The strict method gets much closer to the government's target count, but it results in GPs that hold more than 7,000 people on average (Table 2).</p>
+  </div>
+  <div class="tbl-wrap"><table class="data">
+    <thead><tr><th>Metric</th><th>Current</th><th>Strict</th><th>Closest</th></tr></thead>
+    <tbody>
+      <tr><td>Count of GPs</td><td>7,917</td><td>11,075</td><td>13,507</td></tr>
+      <tr><td>Average population per GP</td><td>11,664</td><td>8,338</td><td>6,837</td></tr>
+      <tr><td>Average GPs per block</td><td>14.83</td><td>20.74</td><td>25.29</td></tr>
+      <tr><td>Average GPs per district</td><td>208.34</td><td>291.45</td><td>355.45</td></tr>
+    </tbody></table></div>
+  <p class="cap"><strong>Table 2:</strong> Summary statistics of GP splits. The two algorithms differ in the number and average population of GPs.</p>
+  <div class="prose">
+    <p>This difference in population matters beyond the raw count. <a href="#s4">Section 4</a> and <a href="#s5">Section 5</a> show that smaller GPs consistently perform better and that ward size makes little difference. Because the closest method produces more GPs with a lower average population than the strict method, it should also perform better on those same measures.</p>
+  </div>
+  <div class="context"><span class="eyebrow">Key context</span><p>Neither algorithm lands exactly on the government's target of 12,592 GPs: the choice of method is itself a policy decision, not a neutral technical detail.</p></div>
+  <figure class="grapher" id="fig-14" data-fig="f14"></figure>
+  <div class="context"><span class="eyebrow">Key context</span><p>The closest method delivers 25.29 GPs per block on average, versus 14.83 today, a 71% increase in density that shows up as a visibly deeper red across nearly every district on the map.</p></div>
+</section>
+
+<section id="s7">
+  <h2><span class="h-no">7.</span> What Delimitation Costs</h2>
+  <div class="prose">
+    <p>Redrawing boundaries carries a direct financial cost. Currently, the state spends 1,526 crore INR every year to pay the salaries of officers, employees, and elected representatives across all of Bihar’s Gram Panchayats. Creating 4,551 new GPs and 66,975 new wards would require an extra 330 crore INR for representatives and 549 crore INR for officers. This creates a combined increase of 879 crore INR, representing a 58 percent jump in total spending. This estimate does not even include the massive extra cost of constructing new buildings and hiring brand new staff for these additional GPs.</p>
+    <p>This financial cost highlights a deeper structural reality about how the government distributes money. Currently, Gram Panchayat Development Plan (GPDP) budgets do not grow perfectly in line with population size. When a population grows by 1 percent, the budget only grows by 0.43 percent. Because money is handed out largely on a per-GP basis rather than a strictly per-person basis, creating more GPs will cause the average GPDP fund per GP to drop. This explains why delimitation is so expensive overall. More GPs will claim a larger total share of the state budget. However, this is also exactly why the reform helps underserved citizens, because each new, smaller GP will receive a baseline amount of funding regardless of its smaller population size.</p>
+  </div>
+  <div class="context"><span class="eyebrow">Key context</span><p>Bihar spends ₹1,526 crore a year on salaries today; the proposed map adds ₹879 crore more, a 58% jump, since GPDP budgets grow only 0.43% for every 1% rise in GP population.</p></div>
+  <div class="prose">
+    <p><a href="#s4">Section 4</a> and <a href="#s5">Section 5</a> clearly established how population size affects government performance. Smaller GPs perform better in almost every category, but ward size has absolutely no impact on performance. The government’s current delimitation plan takes advantage of the GP finding but completely ignores the ward finding. A much more efficient solution for both finances and public performance would be to keep the current number of wards and ward members, but grant those existing members greater administrative powers.</p>
+    <p>We can easily break down this financial burden. The estimated cost of 879 crore INR combines two separate administrative choices: creating more GPs and creating more wards. These two changes do not have to happen at the same time. By looking at what exactly drives each expense, we can see how much of this cost is strictly necessary to shrink GPs, and how much is just optional spending on smaller wards that will not improve performance.</p>
+    <p>The majority of this new expenditure is fixed at the GP level rather than the ward level. The largest single cost is the 549 crore INR increase for officers and staff. This expense is driven entirely by the number of new GPs, because the state assigns these posts per GP regardless of how many wards sit inside it. The remaining 330 crore INR increase pays for elected representatives. Out of this amount, only 137 crore INR scales with the GP count to pay the honoraria for the Mukhiya, Up-Mukhiya, Sarpanch, Up-Sarpanch, Panchayat Samiti members, and Zila Parishad members. The final 193 crore INR is dedicated strictly to paying the 66,975 new Ward Members and Panchs created by carving smaller wards. If Bihar redrew the GP boundaries but left the ward boundaries completely untouched, the state would save 193 crore INR every single year. The government would completely avoid the cost of the 66,975 new ward-level seats while still capturing 100 percent of the performance gains that come from smaller GPs. Ultimately, this targeted approach would cut the total financial cost of delimitation by nearly a quarter, saving 21.9 percent of the projected budget.</p>
+  </div>
+  <div class="context"><span class="eyebrow">Key context</span><p>Redrawing GP boundaries but leaving wards untouched would save ₹193 crore a year: cutting the total cost of delimitation by nearly a quarter (21.9%) while keeping 100% of the GP-size performance gains.</p></div>
+  <figure class="grapher" id="fig-15" data-fig="f15"></figure>
+  <div class="prose">
+    <p>Some initial steps have also been set in place for the financial empowerment of GPs. The XVI Finance Commission has recommended a total grant of INR 51,923 crore for Bihar’s three-tier Panchayati Raj Institutions over 2026–27 to 2030–31. While 80% of this amount will be provided as a Basic Grant, the remaining 20% forms a Performance Grant, whereby GPs are being empowered to raise and spend their own income under the budgetary head of Own-Source Revenue (OSR). To qualify for this grant, a GP must grow its OSR by at least 2.5% a year (or 1.025× the prior year’s, whichever is lower) while collecting a minimum of INR 1,200 per household annually. This shift places real financial responsibility on GPs: they are being pushed to take ownership of their own finances, since their share of Commission funding now depends on what they raise themselves, not just what they are given.</p>
+  </div>
+  <div class="tiles">
+    <div class="tile"><b>₹51,923 cr</b><span>XVI Finance Commission grant for Bihar’s three-tier PRIs, 2026–27 to 2030–31</span></div>
+    <div class="tile"><b>20%</b><span>Share allocated as a Performance Grant, tied to Own-Source Revenue growth</span></div>
+    <div class="tile"><b>₹1,200</b><span>Minimum OSR a GP must collect per household annually to qualify</span></div>
+  </div>
+  <div class="context"><span class="eyebrow">Key context</span><p>The Performance Grant's OSR link is a real opportunity to help offset delimitation's fiscal cost, but only if smaller, better-funded GPs can actually raise more locally.</p></div>
+</section>
+
+<div class="photo-break"><img src="assets/photo-circle.jpg" alt="NREGA workers standing in a large circle on an open field" loading="lazy"></div>
+
+<section id="s8">
+  <h2><span class="h-no">8.</span> How to Delimit Well</h2>
+  <div class="prose">
+    <p><strong>Cut GP size.</strong> The state’s proposed population target of 7,000 could be set lower. <a href="#s4">Section 4</a> shows that smaller GPs provide more schools, health centres, and NREGA persondays per person, and also elect more educated leaders. Importantly, these gains do not level off as GPs approach 7,000 people. This suggests that making GPs smaller could bring further improvements beyond what the current proposal would achieve.</p>
+    <p><strong>Decentralise to fewer wards with more powerful ward members.</strong> As per our analysis in <a href="#s5">Section 5</a>, outcomes do not significantly differ with ward size, and hence, having more ward members does not necessarily mean having better local government. Fourteen ward members in each GP can spread responsibility across many seats without giving individual members enough authority to get things done. Instead, the ward layer provides an opportunity for decentralisation, a smaller number of ward members, with more meaningful responsibilities and powers, could turn representation into more effective local government. Consolidating the existing wards also decreases the estimated cost of delimitation by 22 percent.</p>
+  </div>
+  <div class="context"><span class="eyebrow">Key context</span><p>The population target could go below 7,000 without losing gains; today's 14 ward members per GP spread responsibility too thin, and consolidating the ward layer would cut costs by 22%.</p></div>
+  <div class="prose">
+    <p>One way to strengthen the ward members who remain is through peer learning. In our Randomised Controlled Trial (RCT) across 2,213 Bihar GPs, ward members who were randomly placed in peer groups improved their governance knowledge by 0.12 SD. This also helped other ward members in the same GP who were not part of the groups: their knowledge increased by a further 0.08 SD. Despite the intervention not involving any change in financial powers, peer learning also led ward members to direct 5% more GPDP spending towards what citizens said they needed. The programme was relatively inexpensive, generating $18.47 in planned public goods spending for every dollar invested (Bamezai et al. (2026)).</p>
+    <p><strong>Protect Dalit representation.</strong> The number of Dalit ward members matters for what local governments provide. Adding one Dalit ward member leads to 2,024 more NREGA person-days per year, a 15% increase (George et al. (2025)). The effect becomes even larger when a GP has at least three Dalit councillors, with NREGA workdays increasing by 34%. This is particularly important because reducing the number of wards would also reduce the number of Dalit ward members in many GPs. One way to avoid losing this representation would be to guarantee at least two SC ward members in every GP, even when the proportional rule would otherwise give only one, with the number capped at around five.</p>
+  </div>
+  <div class="tiles">
+    <div class="tile"><b>$18.47</b><span>In planned public goods spending per dollar invested in peer learning</span></div>
+    <div class="tile"><b>+15%</b><span>More NREGA workdays from one additional Dalit ward member</span></div>
+    <div class="tile"><b>+34%</b><span>More NREGA workdays with three or more Dalit councillors</span></div>
+  </div>
+  <div class="context"><span class="eyebrow">Key context</span><p>Guaranteeing at least two SC ward members per GP (capped around five) prevents consolidation from mechanically erasing Dalit representation.</p></div>
+  <div class="prose">
+    <p><strong>Do not reset the reservation lottery.</strong> When GPs are reorganised, existing reservation status should be carried forward rather than starting the reservation rotation again from scratch. Restarting the rotation could leave some GPs repeatedly reserved while others never get a reserved seat. Panel A of <a href="#table-3">Table 3</a> shows how GPs have been reserved over time. The 2001 benchmark gives an idea of what happens when SC representation is left entirely to the electoral process: SC candidates won only 1.6% of Mukhiya seats despite SCs making up 15.5% of the population (Gupta, 2001).<sup class="fnref"><a href="#fn5" id="fnr5">5</a></sup></p>
+  </div>
+  <figure class="grapher" id="table-3" data-fig="t3"></figure>
+  <div class="prose">
+    <p>Reservation can also have effects that last after it ends. GPs that were previously reserved are 11.3 percentage points more likely to elect an SC head even after the reservation is withdrawn (Kumar and Sharan, 2026). This effect is especially strong in GPs where SCs make up a middle-sized share of the population (the middle tercile, averaging around 16%). In these GPs, SCs are initially too few to win office without reservation, but after getting the opportunity to hold office once, they are more likely to continue winning even after the reservation ends. Panel B of Table 3 focuses specifically on these GPs. Compared with all GPs, this group contains a larger share of GPs that have never been reserved, even though these are the GPs where greater SC representation appears to have the largest effects.</p>
+  </div>
+  <div class="fn">
+    <p id="fn5"><sup>5</sup> For the Any row, Reserved Both indicates the GP was reserved under some category (SC, ST, or OBC) in both the 2006 and 2016 cycles, not necessarily the same category each time. Of the GPs reserved in both cycles under this definition, 99.4% switched categories between 2006 and 2016 (most commonly rotating between SC and OBC), reflecting the reservation policy’s built-in category rotation across delimitation cycles. <a href="#fnr5" aria-label="Back to text">↩</a></p>
+  </div>
+</section>
+
+<section id="s9">
+  <h2><span class="h-no">9.</span> Getting the Transition Right</h2>
+  <div class="prose">
+    <p>Once the new GP boundaries are decided, there will be a transition period in which appointed bureaucrats take over until the next Panchayat elections. In Bihar, this would mean a period between the end of the current elected leaders’ terms in November 2026 and the next elections. Evidence from Karnataka suggests that this change matters for how GPs perform. Arora et al. (2026) find that, compared with bureaucrat-run GPs, politician-run GPs spend 59 percent more on public goods that citizens want, and generate 0.11 SD more NREGS person-days. The authors link these differences mainly to the greater accountability and citizen engagement that elected leaders bring.</p>
+    <p>The bigger risk is that a temporary delay can become a much longer one. Bihar has seen this before: panchayat elections were not held for 23 years, from 1978 to 2001, and resumed only after judicial intervention (Gupta, 2001). Other states have had similar problems with long delays in urban local body elections.</p>
+  </div>
+  <div class="context"><span class="eyebrow">Recommendation</span><p>A statutorily hard-deadlined, GIS-assisted delimitation, carried out quickly, with elections held on schedule. Delimitation should be faster and better, not paused.</p></div>
+</section>
+
+<section id="recommendations">
+  <h2>Table 4: Summary of Recommendations</h2>
+  <div class="prose"><p>Every finding in this report, and the recommendation it supports, in one place.</p></div>
+  <div class="t4" id="t4"></div>
+</section>
+
+<section id="appendix-a">
+  <h2>Appendix A. Data Inventory</h2>
+  <div class="tbl-wrap"><table class="data">
+    <thead><tr><th>Source</th><th>Sample</th><th>Vintage</th></tr></thead>
+    <tbody>
+      <tr class="grp"><td colspan="3">A. Census</td></tr>
+      <tr><td>Population Census, 1991</td><td>6,887 GPs</td><td>1991</td></tr>
+      <tr><td>Population Census, 2001</td><td>8,392 GPs</td><td>2001</td></tr>
+      <tr><td>Population Census, 2011</td><td>8,392 GPs</td><td>2011</td></tr>
+      <tr><td>Village Census, 2011</td><td>39,359 villages</td><td>2011</td></tr>
+      <tr><td>Socio-Economic Caste Census, 2011–12</td><td>97 million citizens</td><td>2011–12</td></tr>
+      <tr class="grp"><td colspan="3">B. State Election Commission</td></tr>
+      <tr><td>Ward and Mukhiya Candidates, 2016</td><td>∼450,000 candidates</td><td>2016</td></tr>
+      <tr><td>Mukhiya Winners, 2016</td><td>7,148 Mukhiyas</td><td>2016</td></tr>
+      <tr><td>GP Reservation Status, 2006 / 2011 / 2016</td><td>8,392 GPs</td><td>2006–16</td></tr>
+      <tr><td>Ward-level Data, 2016</td><td>100,456 wards</td><td>2016</td></tr>
+      <tr class="grp"><td colspan="3">C. Administrative</td></tr>
+      <tr><td>NREGA MIS, 2021–24</td><td>7,658 GPs</td><td>2021–24</td></tr>
+      <tr><td>PRD Nischaysoft Data</td><td>100,000+ wards</td><td>2016–19</td></tr>
+      <tr class="grp"><td colspan="3">D. Surveys for RCTs</td></tr>
+      <tr><td>Citizen Survey (10 districts)</td><td>9,699 citizens</td><td>Nov 2024–Feb 2025</td></tr>
+      <tr><td>Ward Member Survey (10 districts)</td><td>6,213 WMs</td><td>Aug–Oct 2024</td></tr>
+    </tbody></table></div>
+  <p class="cap"><strong>Table 5:</strong> Local Governance in Bihar, Data Inventory</p>
+</section>
+
+<section id="appendix-b">
+  <h2>Appendix B. Simulation Methodology</h2>
+  <div class="prose"><p><strong>Objective:</strong> We take Bihar’s existing blocks and, within each one, carve its villages into brand-new groups of roughly 7,000 people each. Each group becomes one new GP. The sorting algorithm follows the rules outlined by the Panchayati Raj Department.</p></div>
+  <ol class="steps">
+    <li>The simulation begins in the revenue village in the north-west corner of each block.</li>
+    <li>From this revenue village, we trace all villages in a clockwise direction, spiraling inward. Once all villages in the outer perimeter are traced, we begin with the next ring in, and so on, until every village has been visited.</li>
+    <li>As each revenue village is visited, a running headcount is kept of the cumulative village population as per the 2011 Census.</li>
+    <li>A village is only allowed to join a group if it is adjacent to a village already in that group.<sup class="fnref"><a href="#fn6" id="fnr6">6</a></sup></li>
+    <li>We follow two versions of grouping revenue villages: (a) strict, only once the running total passes 7,000 people does the set of villages form a new GP; (b) closest, checks the running total before and after adding the village that spills over 7,000 and finalizes whichever set is closest to the threshold.</li>
+    <li>Once a group of villages forms a GP, reset the counter to zero and keep going with the next village.</li>
+    <li>Repeat until all villages in the block are assigned to a GP.</li>
+  </ol>
+  <div class="fn">
+    <p id="fn6"><sup>6</sup> Omitting the adjacency condition can group villages that lie clockwise to each other, but are actually across the block. This would construct GPs whose shape on the map looks like scattered patches of land instead of one solid area. <a href="#fnr6" aria-label="Back to text">↩</a></p>
+  </div>
+  <details class="abbr" style="margin-top:1.6rem">
+    <summary>About the interactive charts in this edition</summary>
+    <p>Curve charts show local-linear fits (Epanechnikov kernel) of each outcome on GP or ward population, with a 95% confidence band, following the specification described in footnote 1. Crosses mark the fitted value at the proposed size and at the current mean size. Open “Learn more about this data” under any chart for its definition, source, estimate and sample. Charts can be downloaded as images. Charts based on public data can also be viewed as a table; charts based on GRAMA's own surveys and analysis are shown as charts only.</p>
+  </details>
+</section>
+
+<section id="references" class="refs">
+  <h2>References</h2>
+  <div class="prose">
+    <p>Arora, A., George, S., Mantha, N., Rao, V., and Sharan, M. (2026). Do elected leaders add value? Evidence from a natural experiment in India. Submitted to <em>American Economic Review</em>.</p>
+    <p>Bamezai, A., George, S., Hari, S., Sharan, M., and Sharma, M. (2026). Learning to govern: The impact of politicians' peer networks. Working Paper.</p>
+    <p>Besley, T., Pande, R., and Rao, V. (2012). Just rewards? Local politics and public resource allocation in south India. <em>The World Bank Economic Review</em>, 26(2):191–216.</p>
+    <p>George, S., Gupta, N., and Sharan, M. (2025). Who, not how many: Local council design and workfare delivery in rural India. Working Paper.</p>
+    <p>George, S., Rao, V., and Sharan, M. R. (2024). Two hundred and fifty-thousand democracies: A review of village government in India. Policy Research Working Paper 10793, World Bank Group, Washington, DC.</p>
+    <p>GRAMA (2024). PHED vs ward members: How implementing agency affects households' access to piped water in Bihar. Technical report, GRAMA.</p>
+    <p>Gupta, S. (2001). New panchayats and subaltern resurgence. <em>Economic and Political Weekly</em>, 36(29):2742–2744.</p>
+    <p>Kapur, D. (2020). Why does the Indian state both fail and succeed? <em>Journal of Economic Perspectives</em>, 34(1):31–54.</p>
+    <p>Kumar, C. and Sharan, M. (2026). The short- and long-run distributional consequences of political reservation. Revise &amp; Resubmit, <em>Journal of the European Economic Association</em>.</p>
+    <p>Narasimhan, V. and Weaver, J. (2024). Polity size and local government performance: Evidence from India. <em>American Economic Review</em>, 114(11):3385–3426.</p>
+    <p>Weaver, J. and Narasimhan, V. (2026). The limits of political representation: Evidence from India. Conditionally accepted at <em>American Economic Review: Insights</em>.</p>
+  </div>
+  <h3 class="sub">Suggested Citation</h3>
+  <div class="cite"><p id="cite-text">GRAMA (2026). “Redrawing the Map: A Policy Note on Panchayat Delimitation in Bihar.” Working draft, not for circulation. Patna, Bihar.</p><button class="act" id="cite-copy" type="button">Copy citation</button></div>
+</section>
+
+</article>
+</div>
+
+<footer class="site">
+  <div class="in">
+    <div>
+      <p><b>GRAMA</b> · Governance Research and Accountability for Meaningful Advancement · Patna, Bihar</p>
+      <p>GRAMA works to strengthen the accountability of governments to citizens and to themselves. We combine rigorous research on governance and development (with a focus on local issues) with partnerships that improve how states collect, use and disseminate data. Our goal is to make policy more informed, responsive, and grounded in everyday realities.</p>
+    </div>
+    <div>
+      <p><b>“Making policy more informed, responsive, and grounded in everyday realities.”</b></p>
+      <p><span id="email">gramagovernance@gmail.com</span> · Patna, Bihar, India</p>
+      <p>© 2026 GRAMA. All rights reserved.</p>
+    </div>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+<script src="data.js?v=2026-10-07"></script>
+<script src="report.js?v=2026-10-07d"></script>
+</body>
+</html>

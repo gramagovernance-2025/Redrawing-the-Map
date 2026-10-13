@@ -1,4 +1,4 @@
-/* Redrawing the Map — interactive edition. Chart cards ("graphers") with Chart / Map / Table views,
+/* Redrawing Bihar’s Map — interactive edition. Chart cards ("graphers") with Chart / Map / Table views,
    indicator selectors, "Learn more about this data", download, share and full-screen. */
 (function () {
   'use strict';
@@ -296,7 +296,7 @@
           x.fillStyle = tk.muted; x.font = '15px ' + FONT; sl.forEach(function (l) { x.fillText(l, P, y - 4); y += 20; });
           x.drawImage(img, 0, top, W, H);
           y = top + H + 20; x.fillStyle = tk.ink2; x.font = '12px ' + FONT; fl.forEach(function (l) { if (l) x.fillText(l, P, y); y += 16; });
-          x.fillStyle = tk.accent; x.font = '600 12px ' + FONT; x.fillText('GRAMA · Redrawing the Map (2026)', P, y + 4);
+          x.fillStyle = tk.accent; x.font = '600 12px ' + FONT; x.fillText('GRAMA · Redrawing Bihar’s Map (2026)', P, y + 4);
           c.toBlob(function (b) { b ? resolve(b) : reject(new Error('empty image')); }, 'image/png');
         };
         img.onerror = function () { reject(new Error('image render failed')); };
@@ -495,7 +495,7 @@
     showItem(4, 2);
   }
   FIGS.stack = function (el) {
-    new Card(el, { fig: 'Infographic', title: 'The data stack behind Redrawing the Map', sub: 'How GRAMA builds the evidence base on panchayat delimitation in Bihar. Select a source to see its coverage and where it is used, or an output to see the layers it draws on.',
+    new Card(el, { fig: 'Infographic', title: 'The data stack behind Redrawing Bihar’s Map', sub: 'How GRAMA builds the evidence base on panchayat delimitation in Bihar. Select a source to see its coverage and where it is used, or an output to see the layers it draws on.',
       views: [{ key: 'stack', label: 'Interactive', icon: 'grid', render: function (v) { v.classList.add('fit'); v.innerHTML = stackHTML(); stackWire(v.querySelector('.stack')); } },
         { key: 'img', label: 'Infographic', icon: 'chart', render: function (v) { v.classList.add('fit'); v.innerHTML = '<img class="g-img" src="assets/data-stack.jpg" alt="Infographic of the five stacked data layers feeding GRAMA\'s analytical outputs.">'; } },
         { key: 'table', label: 'Table', icon: 'table', render: function (v) { v.innerHTML = tableHTML(STACKT[0], STACKT.slice(1)); } }],

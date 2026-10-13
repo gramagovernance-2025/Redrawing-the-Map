@@ -1,6 +1,6 @@
 # Redrawing Bihar’s Map: interactive edition
 
-Interactive web edition of GRAMA's handbook *Redrawing Bihar’s Map: A Handbook for Panchayat Delimitation* (September 2026).
+Interactive web edition of GRAMA's handbook *Redrawing Bihar’s Map: A Handbook for Panchayat Delimitation* (October 2026).
 
 - `index.html` – the report page
 - `report.js` – chart cards

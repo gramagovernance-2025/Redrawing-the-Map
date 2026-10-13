@@ -496,7 +496,7 @@
     showItem(4, 2);
   }
   FIGS.stack = function (el) {
-    new Card(el, { fig: 'Infographic', title: 'The data stack behind Redrawing Bihar’s Map', sub: 'How GRAMA builds the evidence base on panchayat delimitation in Bihar. Select a source to see its coverage and where it is used, or an output to see the layers it draws on.',
+    new Card(el, { fig: 'Infographic', title: 'The data stack behind Redrawing Bihar’s Map', sub: 'How GRAMA builds the evidence base on panchayat delimitation. Select a source to see its coverage and where it is used, or an output to see the layers it draws on.',
       views: [{ key: 'stack', label: 'Interactive', icon: 'grid', render: function (v) { v.classList.add('fit'); v.innerHTML = stackHTML(); stackWire(v.querySelector('.stack')); } },
         { key: 'img', label: 'Infographic', icon: 'chart', render: function (v) { v.classList.add('fit'); v.innerHTML = '<img class="g-img" src="assets/data-stack.jpg?v=2026-10-13" alt="Infographic of the five stacked data layers feeding GRAMA\'s analytical outputs.">'; } },
         { key: 'table', label: 'Table', icon: 'table', render: function (v) { v.innerHTML = tableHTML(STACKT[0], STACKT.slice(1)); } }],

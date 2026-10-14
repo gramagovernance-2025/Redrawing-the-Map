@@ -639,7 +639,7 @@
               annotations: [{ x: 3418, yref: 'paper', y: 1, yanchor: 'bottom', xanchor: 'left', text: 'National mean 3,418', showarrow: false, font: { size: 12, color: t.ink2 } }] }, null, 720);
         } },
         { key: 'table', label: 'Table', icon: 'table', render: function (v) { v.innerHTML = tableHTML(['State', 'Rural population (2011)', 'Number of GPs', 'Average GP population (rural)'], st.map(function (r) { return [r.state, fmtUS(r.rural), fmtUS(r.gps), fmtUS(r.avg)]; }), { hl: function (r) { return r[0] === 'Bihar'; } }); } }],
-      source: 'Population Census 2011 (rural population); Ministry of Panchayati Raj, state-wise entity counts', note: 'The 25 states in the report's Table 1. The national mean (total rural population ÷ total GPs) also counts Union Territories with Gram Panchayats.',
+      source: 'Population Census 2011 (rural population); Ministry of Panchayati Raj, state-wise entity counts', note: 'The 25 states in the report’s Table 1. The national mean (total rural population ÷ total GPs) also counts Union Territories with Gram Panchayats.',
       csv: function () { return [['state', 'rural_population_2011', 'gps', 'avg_gp_population']].concat(st.map(function (r) { return [r.state, r.rural, r.gps, r.avg]; })); } });
   };
 

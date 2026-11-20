@@ -130,6 +130,38 @@ h3.sub{font-family:var(--f-body);font-size:.82rem;letter-spacing:.12em;text-tran
 .chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--surface);font-weight:600}
 .g-select-group{display:flex;flex-wrap:wrap;gap:.4rem}
 .g-select{border:1px solid var(--rule);background:var(--sunk);color:var(--ink);border-radius:6px;padding:.3rem .55rem;font-size:.86rem;font-family:inherit;cursor:pointer;max-width:48vw}
+
+/* village explorer */
+.ve-block{background:var(--surface);border:1px solid var(--rule);border-top:4px solid var(--accent);border-radius:var(--radius);padding:1.7rem 1.8rem 1.9rem;margin:2.4rem 0 1.6rem;max-width:980px}
+.ve-title{font-size:var(--step-2);margin:0 0 .45rem}
+.ve-sub{color:var(--muted);font-size:1rem;margin:0 0 1.2rem;max-width:640px}
+.ve-mode{margin-bottom:1rem}
+.ve-panel{margin-bottom:.3rem}
+.ve-search{position:relative;max-width:420px}
+.ve-input{width:100%;border:1px solid var(--rule);background:var(--sunk);color:var(--ink);border-radius:6px;padding:.55rem .8rem;font-size:1rem;font-family:inherit}
+.ve-input:focus{outline:2px solid var(--accent);outline-offset:1px}
+.ve-suggest{position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--rule);border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.12);max-height:280px;overflow-y:auto;z-index:5}
+.ve-suggest-item{padding:.5rem .8rem;cursor:pointer;font-size:.92rem;border-bottom:1px solid var(--rule)}
+.ve-suggest-item:last-child{border-bottom:0}
+.ve-suggest-item:hover,.ve-suggest-item.active{background:var(--accent-wash)}
+.ve-suggest-item b{color:var(--ink)}
+.ve-suggest-item small{display:block;color:var(--muted);font-size:.8rem;margin-top:.1rem}
+.ve-select-group{display:flex;flex-wrap:wrap;gap:.5rem}
+.ve-status{color:var(--muted);font-size:.9rem;margin:.6rem 0 0}
+.ve-result{margin-top:1.3rem}
+.ve-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.9rem}
+.ve-col h4{font-family:var(--f-body);font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-ink);margin:0 0 .6rem;font-weight:700}
+.ve-gp-card{background:var(--sunk);border-radius:6px;padding:.8rem .9rem;margin-bottom:.6rem}
+.ve-gp-card .gp-name{font-weight:600;color:var(--ink);font-size:.95rem}
+.ve-gp-card .gp-meta{color:var(--muted);font-size:.82rem;margin:.1rem 0 .5rem}
+.ve-village-list{display:flex;flex-wrap:wrap;gap:.3rem;margin:0;padding:0;list-style:none}
+.ve-village-list li{background:var(--surface);border:1px solid var(--rule);border-radius:999px;padding:.15rem .6rem;font-size:.82rem;color:var(--ink-2)}
+.ve-village-list li.hl{background:var(--accent);border-color:var(--accent);color:var(--surface);font-weight:600}
+.ve-map-wrap{margin-top:1.1rem}
+.ve-map-toggle{margin-bottom:.6rem}
+.ve-map{min-height:320px}
+.ve-map-note{color:var(--muted);font-size:.82rem;margin:.5rem 0 0}
+@media (max-width:760px){.ve-cols{grid-template-columns:1fr}}
 .g-view{min-height:380px;position:relative}
 .g-plot{width:100%;height:440px}
 .g-plot.tall{height:560px}
@@ -602,6 +634,34 @@ table.data tr.grp td{background:var(--sunk);font-weight:700;font-size:.78rem;let
   <div class="context"><span class="eyebrow">Key context</span><p>Neither algorithm lands exactly on the government's target of 12,592 GPs: the choice of method is itself a policy decision, not a neutral technical detail.</p></div>
   <figure class="grapher" id="fig-14" data-fig="f14"></figure>
   <div class="context"><span class="eyebrow">Key context</span><p>The closest method delivers 25.29 GPs per block on average, versus 14.83 today, a 71% increase in density that shows up as a visibly deeper red across nearly every district on the map.</p></div>
+
+  <div class="ve-block" id="village-explore">
+    <h3 class="ve-title">Explore Bihar's Villages</h3>
+    <p class="ve-sub">See which GP your village falls into today, and under each proposed rule. Search by name, or browse by Gram Panchayat.</p>
+
+    <div class="g-tabs ve-mode" role="tablist" aria-label="Lookup mode">
+      <button class="g-tab" type="button" data-mode="search" aria-selected="true">Search a village</button>
+      <button class="g-tab" type="button" data-mode="browse" aria-selected="false">Browse by Gram Panchayat</button>
+    </div>
+
+    <div class="ve-panel" data-panel="search">
+      <div class="ve-search">
+        <input type="text" class="ve-input" id="ve-village-input" placeholder="Type a village name…" autocomplete="off">
+        <div class="ve-suggest" id="ve-village-suggest" hidden></div>
+      </div>
+    </div>
+
+    <div class="ve-panel" data-panel="browse" hidden>
+      <div class="ve-select-group" role="group" aria-label="Location">
+        <select class="g-select" data-role="ve-district" aria-label="District"></select>
+        <select class="g-select" data-role="ve-block" aria-label="Block"></select>
+        <select class="g-select" data-role="ve-gp" aria-label="Gram Panchayat"></select>
+      </div>
+    </div>
+
+    <p class="ve-status" id="ve-status">Loading village data…</p>
+    <div class="ve-result" id="ve-result" hidden></div>
+  </div>
 </section>
 
 <section id="s7">

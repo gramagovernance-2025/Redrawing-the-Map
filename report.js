@@ -933,6 +933,215 @@
     ['Transition to new boundaries is the biggest execution risk', 'Section 9', 'Bihar\'s own panchayat elections lapsed for 23 years (1978–2001); Karnataka evidence shows bureaucrat-run GPs spend less on citizen priorities and deliver fewer NREGS workdays than elected ones.', 'Set a hard statutory deadline for a GIS-assisted delimitation and hold elections on schedule; delimitation should be faster and better, not paused.']];
   $('#t4').innerHTML = T4.map(function (r, i) { return '<details' + (i === 0 ? ' open' : '') + '><summary><span class="k">' + (i + 1) + '</span><span class="h">' + esc(r[0]) + '</span><span class="s">' + r[1] + '</span></summary><div class="b"><p><strong>Evidence:</strong> ' + esc(r[2]) + '</p><p><strong>Recommendation:</strong> ' + esc(r[3]) + '</p></div></details>'; }).join('');
 
+  /* ---------- village explorer ---------- */
+  (function () {
+    var el = document.getElementById('village-explore');
+    if (!el) return;
+    var statusEl = $('.ve-status', el), resultEl = $('#ve-result', el);
+    var rows = null, manifest = null, byBlock = null, loadPromise = null, mode = 'search';
+    var F = { name: 0, dslug: 1, bslug: 2, c_id: 3, c_label: 4, c_pop: 5, s_id: 6, s_label: 7, s_pop: 8, k_id: 9, k_label: 10, k_pop: 11 };
+    var VAR = { current: { id: F.c_id, label: F.c_label, pop: F.c_pop, name: 'Current' }, strict: { id: F.s_id, label: F.s_label, pop: F.s_pop, name: 'Strict' }, closest: { id: F.k_id, label: F.k_label, pop: F.k_pop, name: 'Closest' } };
+    var blockGeoCache = {}, mapVar = 'current', mapState = null, mapDiv = null;
+
+    function fetchBlockGeo(dslug, bslug) {
+      var key = dslug + '__' + bslug;
+      if (blockGeoCache[key]) return Promise.resolve(blockGeoCache[key]);
+      return fetchJSON('blocks/' + key + '.json').then(function (g) { blockGeoCache[key] = g; return g; });
+    }
+
+    function fetchJSON(url) { return fetch(url).then(function (r) { if (!r.ok) throw new Error('fetch failed: ' + url); return r.json(); }); }
+
+    function ensureData() {
+      if (loadPromise) return loadPromise;
+      statusEl.textContent = 'Loading village data…';
+      loadPromise = Promise.all([fetchJSON('villages/index.json'), fetchJSON('blocks/manifest.json')]).then(function (res) {
+        rows = res[0]; manifest = res[1];
+        byBlock = {};
+        rows.forEach(function (r, i) { var key = r[F.dslug] + '__' + r[F.bslug]; (byBlock[key] = byBlock[key] || []).push(i); });
+        statusEl.textContent = '';
+        initBrowseSelects();
+      }).catch(function (e) {
+        console.error(e); statusEl.textContent = 'Could not load village data. Check your connection and reload the page.';
+      });
+      return loadPromise;
+    }
+
+    if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) { if (e.isIntersecting) { ensureData(); io.disconnect(); } });
+      }, { rootMargin: '300px' });
+      io.observe(el);
+    } else { ensureData(); }
+
+    function districtName(dslug) { for (var d in manifest) if (manifest[d].slug === dslug) return d; return dslug; }
+    function blockName(dslug, bslug) {
+      var d = manifest[districtName(dslug)]; if (!d) return bslug;
+      var b = d.blocks.filter(function (x) { return x.slug === bslug; })[0];
+      return b ? b.name : bslug;
+    }
+
+    /* mode toggle */
+    $('.ve-mode', el).addEventListener('click', function (e) {
+      var b = e.target.closest('button[data-mode]'); if (!b) return;
+      mode = b.dataset.mode;
+      el.querySelectorAll('[data-mode]').forEach(function (x) { x.setAttribute('aria-selected', String(x === b)); });
+      el.querySelectorAll('.ve-panel').forEach(function (p) { p.hidden = p.dataset.panel !== mode; });
+    });
+
+    /* search */
+    var input = $('#ve-village-input', el), suggest = $('#ve-village-suggest', el), searchT;
+    input.addEventListener('input', function () {
+      clearTimeout(searchT);
+      var q = input.value.trim().toLowerCase();
+      if (q.length < 2) { suggest.hidden = true; return; }
+      searchT = setTimeout(function () {
+        ensureData().then(function () {
+          if (!rows) return;
+          var starts = [], contains = [];
+          for (var i = 0; i < rows.length; i++) {
+            var idx = rows[i][F.name].toLowerCase().indexOf(q);
+            if (idx === 0) starts.push(i); else if (idx > 0 && contains.length < 40) contains.push(i);
+            if (starts.length >= 40) break;
+          }
+          var matches = starts.concat(contains).slice(0, 8);
+          if (!matches.length) { suggest.innerHTML = '<div class="ve-suggest-item">No villages found.</div>'; suggest.hidden = false; return; }
+          suggest.innerHTML = matches.map(function (i) {
+            var r = rows[i];
+            return '<div class="ve-suggest-item" data-idx="' + i + '"><b>' + esc(r[F.name]) + '</b><small>' + esc(blockName(r[F.dslug], r[F.bslug])) + ' block, ' + esc(districtName(r[F.dslug])) + '</small></div>';
+          }).join('');
+          suggest.hidden = false;
+        });
+      }, 120);
+    });
+    suggest.addEventListener('click', function (e) {
+      var item = e.target.closest('[data-idx]'); if (!item) return;
+      var i = +item.dataset.idx;
+      input.value = rows[i][F.name]; suggest.hidden = true;
+      renderResult(rows[i][F.dslug], rows[i][F.bslug], [i], rows[i][F.name]);
+    });
+    document.addEventListener('click', function (e) { if (!el.contains(e.target)) suggest.hidden = true; });
+
+    /* browse */
+    function initBrowseSelects() {
+      var dSel = el.querySelector('[data-role="ve-district"]'), bSel = el.querySelector('[data-role="ve-block"]'), gSel = el.querySelector('[data-role="ve-gp"]');
+      var districts = Object.keys(manifest).sort();
+      dSel.innerHTML = districts.map(function (d) { return '<option value="' + esc(d) + '">' + esc(d) + '</option>'; }).join('');
+      function fillBlocks() {
+        var blocks = manifest[dSel.value].blocks;
+        bSel.innerHTML = blocks.map(function (b) { return '<option value="' + esc(b.slug) + '">' + esc(b.name) + '</option>'; }).join('');
+        fillGPs();
+      }
+      function fillGPs() {
+        var key = manifest[dSel.value].slug + '__' + bSel.value, idxs = byBlock[key] || [], seen = {}, opts = [];
+        idxs.forEach(function (i) { var r = rows[i], id = r[F.c_id]; if (!seen[id]) { seen[id] = true; opts.push({ id: id, label: r[F.c_label] }); } });
+        opts.sort(function (a, b) { return a.label.localeCompare(b.label); });
+        gSel.innerHTML = opts.map(function (o) { return '<option value="' + esc(o.id) + '">' + esc(o.label) + '</option>'; }).join('');
+        renderBrowseResult();
+      }
+      dSel.addEventListener('change', fillBlocks);
+      bSel.addEventListener('change', fillGPs);
+      gSel.addEventListener('change', renderBrowseResult);
+      fillBlocks();
+    }
+    function renderBrowseResult() {
+      var dSel = el.querySelector('[data-role="ve-district"]'), bSel = el.querySelector('[data-role="ve-block"]'), gSel = el.querySelector('[data-role="ve-gp"]');
+      if (!gSel.value) return;
+      var dslug = manifest[dSel.value].slug, bslug = bSel.value, cId = gSel.value;
+      var idxs = (byBlock[dslug + '__' + bslug] || []).filter(function (i) { return rows[i][F.c_id] === cId; });
+      renderResult(dslug, bslug, idxs, null);
+    }
+
+    /* shared result rendering */
+    function touchedIds(variantKey, focusIdxs) {
+      var v = VAR[variantKey], touched = {}, order = [];
+      focusIdxs.forEach(function (i) { var id = rows[i][v.id]; if (!touched[id]) { touched[id] = true; order.push(id); } });
+      return order;
+    }
+    function renderColumn(variantKey, dslug, bslug, order, highlightName) {
+      var v = VAR[variantKey];
+      var blockRows = byBlock[dslug + '__' + bslug] || [];
+      var html = '<h4>' + v.name + '</h4>';
+      order.forEach(function (gid) {
+        var members = blockRows.filter(function (i) { return rows[i][v.id] === gid; });
+        if (!members.length) return;
+        var first = rows[members[0]];
+        html += '<div class="ve-gp-card"><div class="gp-name">' + esc(first[v.label]) + '</div>' +
+          '<div class="gp-meta">' + fmtUS(first[v.pop]) + ' people · ' + members.length + ' villages</div>' +
+          '<ul class="ve-village-list">' + members.map(function (i) {
+            var nm = rows[i][F.name];
+            return '<li' + (nm === highlightName ? ' class="hl"' : '') + '>' + esc(nm) + '</li>';
+          }).join('') + '</ul></div>';
+      });
+      return html;
+    }
+    function renderResult(dslug, bslug, focusIdxs, highlightName) {
+      resultEl.hidden = false;
+      var touched = { current: touchedIds('current', focusIdxs), strict: touchedIds('strict', focusIdxs), closest: touchedIds('closest', focusIdxs) };
+      resultEl.innerHTML = '<div class="ve-cols">' +
+        '<div class="ve-col" data-variant="current">' + renderColumn('current', dslug, bslug, touched.current, highlightName) + '</div>' +
+        '<div class="ve-col" data-variant="strict">' + renderColumn('strict', dslug, bslug, touched.strict, highlightName) + '</div>' +
+        '<div class="ve-col" data-variant="closest">' + renderColumn('closest', dslug, bslug, touched.closest, highlightName) + '</div>' +
+        '</div>' +
+        '<div class="ve-map-wrap"><div class="g-chips ve-map-toggle" role="group" aria-label="Map layer">' +
+        '<button class="chip" type="button" data-mvar="current" aria-pressed="true">Current</button>' +
+        '<button class="chip" type="button" data-mvar="strict" aria-pressed="false">Strict</button>' +
+        '<button class="chip" type="button" data-mvar="closest" aria-pressed="false">Closest</button>' +
+        '</div><div class="ve-map"></div><p class="ve-map-note">Highlighted shapes are the GP(s) shown above for this layer; the rest of the block is shown for context.</p></div>' +
+        '<div class="g-actions ve-actions"><button class="act" type="button" data-act="ve-csv">' + IC.dl + 'Download full village table (CSV)</button></div>';
+      var csvBtn = resultEl.querySelector('[data-act="ve-csv"]');
+      if (csvBtn) csvBtn.addEventListener('click', downloadVillageCSV);
+      resultEl.querySelectorAll('[data-mvar]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          mapVar = b.dataset.mvar;
+          resultEl.querySelectorAll('[data-mvar]').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+          renderMap();
+        });
+      });
+      mapVar = 'current';
+      mapState = { dslug: dslug, bslug: bslug, touched: touched };
+      renderMap();
+    }
+
+    function renderMap() {
+      if (typeof Plotly === 'undefined' || !mapState) return;
+      var container = resultEl.querySelector('.ve-map');
+      if (!container) return;
+      fetchBlockGeo(mapState.dslug, mapState.bslug).then(function (geo) {
+        if (!mapState || !resultEl.contains(container)) return;
+        var g = geo[mapVar], ids = mapState.touched[mapVar];
+        if (!g || !g.features.length) { container.innerHTML = '<p class="ve-status">No boundary data for this layer.</p>'; return; }
+        var t = T(), isHit = {}; ids.forEach(function (id) { isHit[id] = true; });
+        container.innerHTML = '';
+        if (mapDiv) { try { Plotly.purge(mapDiv); } catch (e) { } }
+        mapDiv = document.createElement('div'); mapDiv.className = 'g-plot'; mapDiv.style.height = '320px';
+        container.appendChild(mapDiv);
+        var traces = [{
+          type: 'choropleth', geojson: g, featureidkey: 'id',
+          locations: g.features.map(function (f) { return f.id; }),
+          z: g.features.map(function (f) { return isHit[f.id] ? 1 : 0; }),
+          zmin: 0, zmax: 1, showscale: false,
+          colorscale: [[0, t.sunk], [1, t.accent]],
+          text: g.features.map(function (f) { return f.properties.label; }),
+          customdata: g.features.map(function (f) { return [f.properties.pop, isHit[f.id] ? 'shown above' : 'not shown above']; }),
+          marker: { line: { color: t.surface, width: 1 } },
+          hovertemplate: '<b>%{text}</b><br>%{customdata[0]:,} people (%{customdata[1]})<extra></extra>'
+        }];
+        var conv = convertGeo(traces, { geo: { fitbounds: 'locations', visible: false, bgcolor: 'rgba(0,0,0,0)', projection: { type: 'mercator' } }, margin: { l: 0, r: 0, t: 0, b: 0 } });
+        Plotly.newPlot(mapDiv, conv[0], layout(conv[1]), PCONF);
+      }).catch(function (e) { console.error(e); container.innerHTML = '<p class="ve-status">Could not load the map for this block.</p>'; });
+    }
+
+    function downloadVillageCSV() {
+      ensureData().then(function () {
+        var out = [['village', 'district', 'block', 'current_gp', 'current_gp_population', 'strict_gp', 'strict_gp_population', 'closest_gp', 'closest_gp_population']];
+        rows.forEach(function (r) {
+          out.push([r[F.name], districtName(r[F.dslug]), blockName(r[F.dslug], r[F.bslug]), r[F.c_label], r[F.c_pop], r[F.s_label], r[F.s_pop], r[F.k_label], r[F.k_pop]]);
+        });
+        downloadFile('bihar_village_gp_assignment.csv', toCSV(out), 'text/csv');
+      });
+    }
+  })();
+
   /* ---------- mount ---------- */
   var mounted = new Map();
   function mount(el) { if (mounted.has(el)) return; var f = FIGS[el.dataset.fig]; if (!f) return; mounted.set(el, true); f(el); }

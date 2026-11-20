@@ -759,23 +759,81 @@
   };
 
   FIGS.f13 = function (el) {
-    var K = D.kadwa, lab = { current: 'Current boundaries', strict: 'Strict rule', closest: 'Closest rule' };
-    new Card(el, { fig: 'Figure 13', title: 'Comparison of Current and Proposed GP Splits (Strict and Closest) in Kadwa Block, Katihar', sub: function (s) { return 'Showing: ' + lab[s.alt].toLowerCase() + ', ' + K[s.alt].features.length + ' GPs. Each shape is one GP, shaded by its 2011 population.'; },
-      toggle: { label: 'Boundaries', options: [{ key: 'current', label: 'Current · ' + K.current.features.length }, { key: 'strict', label: 'Strict · ' + K.strict.features.length }, { key: 'closest', label: 'Closest · ' + K.closest.features.length }] },
-      views: [{ key: 'map', label: 'Map', icon: 'map', render: function (v, s, card) {
-        var t = T(), g = K[s.alt];
-        card.plot(v, [{ type: 'choropleth', geojson: g, featureidkey: 'id', locations: g.features.map(function (f) { return f.id; }), z: g.features.map(function (f) { return f.properties.pop; }),
-          text: g.features.map(function (f) { return f.properties.label; }), zmin: 2000, zmax: 18000, colorscale: t.seq, marker: { line: { color: t.surface, width: 1 } },
-          colorbar: { orientation: 'h', y: -0.02, yanchor: 'top', len: 0.6, thickness: 10, outlinewidth: 0, tickfont: { color: t.ink2 }, tickformat: ',d', title: { text: 'GP population (2011)', side: 'top', font: { color: t.muted, size: 12 } } },
-          hovertemplate: '<b>%{text}</b><br>%{z:,} people<extra></extra>' }],
-          { geo: { fitbounds: 'locations', visible: false, bgcolor: 'rgba(0,0,0,0)', projection: { type: 'mercator' } }, margin: { l: 0, r: 0, t: 0, b: 50 } }, 'tall');
-      } }, { key: 'table', label: 'Table', icon: 'table', render: function (v, s) {
-        var g = K[s.alt].features.slice().sort(function (a, b) { return b.properties.pop - a.properties.pop; });
-        v.innerHTML = tableHTML(['Gram Panchayat', 'Population (2011)'], g.map(function (f) { return [f.properties.label, fmtUS(f.properties.pop)]; }));
-      } }],
-      source: 'GRAMA boundary simulation on Census 2011 village boundaries and populations', note: 'Simulated GPs are a model of the stated rule, not official boundaries.',
-      learn: function () { return '<h4>How the simulation works</h4><p>Starting from the north-west village of the block, villages are visited clockwise in inward spirals and added to the current group only if adjacent to it. A group closes when it reaches 7,000 people (strict) or at whichever total is closer to 7,000 (closest). See Appendix B.</p><h4>Why it matters</h4><p>The same rule produces 51 or 63 GPs in this block depending on a single tie-breaking choice. A published algorithm makes that choice visible and reproducible.</p>'; },
-      csv: function (s) { return [['gp', 'population_2011']].concat(K[s.alt].features.map(function (f) { return [f.properties.label, f.properties.pop]; })); } });
+    var lab = { current: 'Current boundaries', strict: 'Strict rule', closest: 'Closest rule' };
+    var manifest, sel = { district: null, block: null }, K = null, zr = [0, 1], card = null, cache = {};
+
+    function findBlock(dname, bname) {
+      var blocks = manifest[dname].blocks;
+      for (var i = 0; i < blocks.length; i++) if (blocks[i].name === bname) return blocks[i];
+    }
+    function zRange(data) {
+      var all = [];
+      ['current', 'strict', 'closest'].forEach(function (k) { data[k].features.forEach(function (f) { all.push(f.properties.pop); }); });
+      var lo = Math.min.apply(null, all), hi = Math.max.apply(null, all);
+      return lo === hi ? [lo - 1, hi + 1] : [lo, hi];
+    }
+    function loadBlock(dname, bname) {
+      var b = findBlock(dname, bname), key = manifest[dname].slug + '__' + b.slug;
+      if (cache[key]) return Promise.resolve(cache[key]);
+      return fetch('blocks/' + key + '.json').then(function (r) { if (!r.ok) throw new Error('fetch failed'); return r.json(); }).then(function (j) { cache[key] = j; return j; });
+    }
+    function updateToggleLabels() {
+      var b = findBlock(sel.district, sel.block);
+      [['current', 'Current'], ['strict', 'Strict'], ['closest', 'Closest']].forEach(function (p) {
+        var btn = card.el.querySelector('[data-alt="' + p[0] + '"]'); if (btn) btn.textContent = p[1] + ' · ' + b.n[p[0]];
+      });
+    }
+    function onBlockChange(dname, bname) {
+      sel.district = dname; sel.block = bname;
+      var v = card.el.querySelector('.g-view'); if (v) v.style.opacity = '.35';
+      return loadBlock(dname, bname).then(function (data) {
+        K = data; zr = zRange(K);
+        if (v) v.style.opacity = '';
+        updateToggleLabels(); card.render();
+      }).catch(function (e) { console.error(e); if (v) v.style.opacity = ''; toast('Could not load that block. Check your connection and try again.'); });
+    }
+    function injectSelects() {
+      var controls = card.el.querySelector('.g-controls');
+      var dHTML = Object.keys(manifest).map(function (d) { return '<option value="' + esc(d) + '"' + (d === sel.district ? ' selected' : '') + '>' + esc(d) + '</option>'; }).join('');
+      var bHTML = manifest[sel.district].blocks.map(function (b) { return '<option value="' + esc(b.name) + '"' + (b.name === sel.block ? ' selected' : '') + '>' + esc(b.name) + '</option>'; }).join('');
+      controls.insertAdjacentHTML('afterbegin', '<div class="g-select-group" role="group" aria-label="Location">' +
+        '<select class="g-select" data-role="district" aria-label="District">' + dHTML + '</select>' +
+        '<select class="g-select" data-role="block" aria-label="Block">' + bHTML + '</select></div>');
+      var dSel = controls.querySelector('[data-role="district"]'), bSel = controls.querySelector('[data-role="block"]');
+      dSel.addEventListener('change', function () {
+        var blocks = manifest[dSel.value].blocks;
+        bSel.innerHTML = blocks.map(function (b) { return '<option value="' + esc(b.name) + '">' + esc(b.name) + '</option>'; }).join('');
+        onBlockChange(dSel.value, blocks[0].name);
+      });
+      bSel.addEventListener('change', function () { onBlockChange(dSel.value, bSel.value); });
+    }
+    function build() {
+      card = new Card(el, { fig: 'Figure 13', title: function () { return 'Comparison of Current and Proposed GP Splits (Strict and Closest) in ' + sel.block + ' Block, ' + sel.district; },
+        sub: function (s) { return 'Showing: ' + lab[s.alt].toLowerCase() + ', ' + K[s.alt].features.length + ' GPs. Each shape is one GP, shaded by its 2011 population.'; },
+        toggle: { label: 'Boundaries', options: [{ key: 'current', label: 'Current · ' + K.current.features.length }, { key: 'strict', label: 'Strict · ' + K.strict.features.length }, { key: 'closest', label: 'Closest · ' + K.closest.features.length }] },
+        views: [{ key: 'map', label: 'Map', icon: 'map', render: function (v, s, card) {
+          var t = T(), g = K[s.alt];
+          card.plot(v, [{ type: 'choropleth', geojson: g, featureidkey: 'id', locations: g.features.map(function (f) { return f.id; }), z: g.features.map(function (f) { return f.properties.pop; }),
+            text: g.features.map(function (f) { return f.properties.label; }), zmin: zr[0], zmax: zr[1], colorscale: t.seq, marker: { line: { color: t.surface, width: 1 } },
+            colorbar: { orientation: 'h', y: -0.02, yanchor: 'top', len: 0.6, thickness: 10, outlinewidth: 0, tickfont: { color: t.ink2 }, tickformat: ',d', title: { text: 'GP population (2011)', side: 'top', font: { color: t.muted, size: 12 } } },
+            hovertemplate: '<b>%{text}</b><br>%{z:,} people<extra></extra>' }],
+            { geo: { fitbounds: 'locations', visible: false, bgcolor: 'rgba(0,0,0,0)', projection: { type: 'mercator' } }, margin: { l: 0, r: 0, t: 0, b: 50 } }, 'tall');
+        } }, { key: 'table', label: 'Table', icon: 'table', render: function (v, s) {
+          var g = K[s.alt].features.slice().sort(function (a, b) { return b.properties.pop - a.properties.pop; });
+          v.innerHTML = tableHTML(['Gram Panchayat', 'Population (2011)'], g.map(function (f) { return [f.properties.label, fmtUS(f.properties.pop)]; }));
+        } }],
+        source: 'GRAMA boundary simulation on Census 2011 village boundaries and populations', note: 'Simulated GPs are a model of the stated rule, not official boundaries. Color scale is specific to the selected block.',
+        learn: function () { return '<h4>How the simulation works</h4><p>Starting from the north-west village of the block, villages are visited clockwise in inward spirals and added to the current group only if adjacent to it. A group closes when it reaches 7,000 people (strict) or at whichever total is closer to 7,000 (closest). See Appendix B.</p><h4>Why it matters</h4><p>The same rule produces ' + K.strict.features.length + ' or ' + K.closest.features.length + ' GPs in this block depending on a single tie-breaking choice. A published algorithm makes that choice visible and reproducible. Use the dropdowns above to explore any of Bihar\'s 534 blocks.</p>'; },
+        csv: function (s) { return [['gp', 'population_2011']].concat(K[s.alt].features.map(function (f) { return [f.properties.label, f.properties.pop]; })); } });
+      injectSelects();
+    }
+
+    fetch('blocks/manifest.json').then(function (r) { return r.json(); }).then(function (m) {
+      manifest = m;
+      var d0 = Object.keys(manifest)[0], b0 = manifest[d0].blocks[0].name;
+      sel.district = d0; sel.block = b0;
+      return loadBlock(d0, b0).then(function (data) { K = data; zr = zRange(K); build(); });
+    }).catch(function (e) { console.error(e); el.innerHTML = '<p class="g-sub">Could not load block boundary data. Check your connection and reload the page.</p>'; });
   };
 
   FIGS.f14 = function (el) {

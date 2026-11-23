@@ -861,7 +861,7 @@
         } },
         { key: 'table', label: 'Table', icon: 'table', render: function (v) { v.innerHTML = tableHTML(['District', 'Population (2011)', 'Current GPs', 'Strict GPs', 'Closest GPs', 'Current per 1,000', 'Closest per 1,000'], rows.map(function (r) { return [r.d, fmtUS(r.pop), fmtUS(r.current), fmtUS(r.strict), fmtUS(r.closest), per(r, 'current').toFixed(3), per(r, 'closest').toFixed(3)]; })); } }],
       hideAltOn: ['chart', 'table'],
-      source: 'GRAMA boundary simulation; Census 2011', note: 'Simulated GPs are assigned to districts by location; under 1% fall on district edges and are not counted. State totals: 7,917 current, 10,044 strict, 11,398 closest.',
+      source: 'GRAMA boundary simulation; Census 2011', note: 'Simulated GPs are assigned to districts by location; under 1% fall on district edges and are not counted. State totals: 7,917 current, 9,882 strict, 11,236 closest.',
       csv: function () { return [['district', 'population_2011', 'current_gps', 'strict_gps', 'closest_gps']].concat(rows.map(function (r) { return [r.d, r.pop, r.current, r.strict, r.closest]; })); } });
   };
 
